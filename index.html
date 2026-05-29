@@ -221,11 +221,11 @@ function Player({duration,audioUrl}){
     if(!audioUrl)return;
     const a=new Audio();
     a.preload="metadata";
-    a.crossOrigin="anonymous";
     a.src=audioUrl;
     a.onloadedmetadata=()=>{if(a.duration&&!isNaN(a.duration))setRealDur(Math.round(a.duration));setLoaded(true);};
+    a.oncanplay=()=>setLoaded(true);
     a.onended=()=>{setPlaying(false);setCur(0);};
-    a.onerror=()=>setLoaded(false);
+    a.onerror=()=>{console.error("Audio error",a.error);setLoaded(false);};
     audioRef.current=a;
     return()=>{a.pause();a.src="";};
   },[audioUrl]);
