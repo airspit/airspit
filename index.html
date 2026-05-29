@@ -42,16 +42,33 @@ const SUPA_KEY="sb_publishable_lYe6NtQadIIlIQ9CzuClFA_tDMo1Bhk";
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 // ── Supabase helpers ──────────────────────────────────────────────────────────
-async function dbRegister(email,handle,role){
-  const{data,error}=await sb.from("users").insert([{email,handle,role}]).select().single();
+async function dbRegister(email,password,handle,role){
+  // 1. Create auth user
+  const{data:authData,error:authErr}=await sb.auth.signUp({email,password});
+  if(authErr) return{error:authErr.message};
+  const authId=authData.user?.id;
+  // 2. Save profile
+  const{data,error}=await sb.from("users").insert([{email,handle,role,auth_id:authId}]).select().single();
   if(error&&error.code==="23505") return{error:"El usuario o email ya existe."};
   if(error) return{error:error.message};
+  return{data:{...data,handle,role}};
+}
+async function dbLogin(email,password){
+  const{data:authData,error:authErr}=await sb.auth.signInWithPassword({email,password});
+  if(authErr) return{error:"Email o contraseña incorrectos."};
+  // Get profile
+  const{data,error}=await sb.from("users").select("*").eq("email",email).single();
+  if(error) return{error:"Perfil no encontrado."};
   return{data};
 }
-async function dbLogin(email){
-  const{data,error}=await sb.from("users").select("*").eq("email",email).single();
-  if(error) return{error:"Email no encontrado."};
-  return{data};
+async function dbGetSession(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session) return null;
+  const{data}=await sb.from("users").select("*").eq("auth_id",session.user.id).single();
+  return data||null;
+}
+async function dbLogout(){
+  await sb.auth.signOut();
 }
 async function dbGetSpits(){
   const{data,error}=await sb.from("spits").select("*").order("created_at",{ascending:false});
@@ -166,11 +183,11 @@ function AuthScreen({onLogin}){
     setLoading(true);
     if(mode==="register"){
       const h="@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,"");
-      const{data,error:err}=await dbRegister(email,h,role);
+      const{data,error:err}=await dbRegister(email,password,h,role);
       if(err){setError(err);setLoading(false);return;}
       onLogin({email,handle:h,role});
     } else {
-      const{data,error:err}=await dbLogin(email);
+      const{data,error:err}=await dbLogin(email,password);
       if(err){setError(err);setLoading(false);return;}
       onLogin({email:data.email,handle:data.handle,role:data.role});
     }
@@ -729,7 +746,40 @@ function MapView({currentUser,onLogout}){
 // ── App ───────────────────────────────────────────────────────────────────────
 function App(){
   const[user,setUser]=useState(null);
-  return user?<MapView currentUser={user} onLogout={()=>setUser(null)}/>:<AuthScreen onLogin={setUser}/>;
+  const[checking,setChecking]=useState(true);
+
+  // Restore session on load
+  useEffect(()=>{
+    dbGetSession().then(profile=>{
+      if(profile) setUser({email:profile.email,handle:profile.handle,role:profile.role});
+      setChecking(false);
+    });
+    // Listen for auth changes
+    const{data:{subscription}}=sb.auth.onAuthStateChange(async(event,session)=>{
+      if(event==="SIGNED_OUT") setUser(null);
+    });
+    return()=>subscription.unsubscribe();
+  },[]);
+
+  const handleLogout=async()=>{
+    await dbLogout();
+    setUser(null);
+  };
+
+  if(checking) return(
+    <div style={{minHeight:"100vh",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:28,fontWeight:800,letterSpacing:-1,marginBottom:16}}>
+          <span style={{color:"#FF385C"}}>air</span><span style={{color:"#222"}}>spit</span>
+        </div>
+        <div style={{width:32,height:32,border:"3px solid #FF385C",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
+      </div>
+    </div>
+  );
+
+  return user
+    ?<MapView currentUser={user} onLogout={handleLogout}/>
+    :<AuthScreen onLogin={setUser}/>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
