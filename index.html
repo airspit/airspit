@@ -135,7 +135,7 @@ function AuthScreen({onLogin}){
               <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"#aaa"}}>@</span>
               <input type="text" placeholder="usuario" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} style={{...iStyle,paddingLeft:28}}/>
             </div>
-            <p style={{fontSize:11,color:"#bbb",marginTop:-8}}>Tu seudónimo — no uses tu nombre real</p>
+            <p style={{fontSize:11,color:"#bbb",marginTop:-8}}>Usá un nickname, nadie necesita saber quién sos.</p>
             <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
               {ROLES.map(r=>(
                 <button key={r} onClick={()=>setRole(r)} style={{padding:"8px 14px",borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",background:role===r?RAUSCH:"#f7f7f7",border:role===r?"none":"1.5px solid #e8e8e8",color:role===r?"#fff":"#555",transition:"all 0.15s"}}>{r}</button>
