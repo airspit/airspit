@@ -17,6 +17,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 @keyframes slideSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes wave{from{transform:scaleY(0.3)}to{transform:scaleY(1)}}
+@keyframes hbDot{0%,100%{box-shadow:0 0 0 3px rgba(255,56,92,0.15),0 1px 6px rgba(255,56,92,0.4)}14%{box-shadow:0 0 0 7px rgba(255,56,92,0.2),0 1px 10px rgba(255,56,92,0.6)}28%,100%{box-shadow:0 0 0 3px rgba(255,56,92,0.15),0 1px 6px rgba(255,56,92,0.4)}42%{box-shadow:0 0 0 5px rgba(255,56,92,0.18),0 1px 8px rgba(255,56,92,0.5)}}
 @keyframes spitPulse{0%,100%{r:6;opacity:1}50%{r:9;opacity:0.6}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .spit-dot{cursor:pointer;transition:r 0.2s}
@@ -418,10 +419,12 @@ function RecordModal({onClose,currentUser}){
     setRecording(false);
     clearInterval(tRef.current);
     if(mediaRef.current&&mediaRef.current.state!=="inactive"){
+      mediaRef.current.onstop=()=>{ if(seconds>=3)setDone(true); };
       mediaRef.current.stop();
       mediaRef.current.stream.getTracks().forEach(t=>t.stop());
+    } else {
+      if(seconds>=3)setDone(true);
     }
-    if(seconds>=3)setDone(true);
   };
 
   const save=async()=>{
@@ -492,174 +495,165 @@ function RecordModal({onClose,currentUser}){
   );
 }
 
-// ── D3 Map ────────────────────────────────────────────────────────────────────
-function WorldMap({spits,onSpitClick,activeSpit,following}){
-  const svgRef=useRef(null);
-  const gRef=useRef(null);
-  const projRef=useRef(null);
-  const zoomTransformRef=useRef(d3.zoomIdentity);
-  const[ready,setReady]=useState(false);
-  const[zoomK,setZoomK]=useState(1);
-  const animFrameRef=useRef(null);
 
-  // Day/night palette based on local hour
+// ── D3 Map ────────────────────────────────────────────────────────────────────
+function WorldMap({spits,onSpitClick,activeSpit}){
+  const containerRef=useRef(null);
+  const svgRef=useRef(null);
+  const projRef=useRef(null);
+  const zoomBehaviorRef=useRef(null);
+  const[ready,setReady]=useState(false);
+  const[transform,setTransform]=useState({k:1,x:0,y:0});
+
   const hour=new Date().getHours();
   const isDay=hour>=6&&hour<20;
   const PAL=isDay
-    ?{bg:"#d4dde8",water:"#b8ccd8",land:"#c8d4e2",border:"#a0b4c4",grat:"#b4c4d0",header:"rgba(255,255,255,0.88)"}
-    :{bg:"#111828",water:"#131f30",land:"#1e2d42",border:"#2a3f5a",grat:"#1e2a3a",header:"rgba(10,16,28,0.85)"};
+    ?{bg:"#c8d8e8",water:"#a8c0d8",land:"#b8ccd8",border:"#90a8bc",grat:"#a0b8cc"}
+    :{bg:"#111828",water:"#131f30",land:"#1e2d42",border:"#2a3f5a",grat:"#1a2838"};
 
+  // Init map once
   useEffect(()=>{
-    const W=window.innerWidth,H=window.innerHeight;
-    const svg=d3.select(svgRef.current).attr("width",W).attr("height",H);
-    svg.selectAll("*").remove();
+    const el=containerRef.current;
+    if(!el||svgRef.current)return;
+    const W=el.clientWidth,H=el.clientHeight;
+
+    const svg=d3.select(el).append("svg")
+      .attr("width",W).attr("height",H)
+      .style("display","block");
+    svgRef.current=svg;
+
+    // Background rect
     svg.append("rect").attr("width",W).attr("height",H).attr("fill",PAL.bg);
 
-    const g=svg.append("g");
-    gRef.current=g;
+    const g=svg.append("g").attr("class","map-g");
 
     const proj=d3.geoNaturalEarth1().scale(W/6.5).translate([W/2,H/2]);
     projRef.current=proj;
     const path=d3.geoPath().projection(proj);
 
-    // Graticule
-    g.append("path").datum(d3.geoGraticule()()).attr("d",path).attr("fill","none").attr("stroke",PAL.grat).attr("stroke-width",0.4);
-    // Sphere
-    g.append("path").datum({type:"Sphere"}).attr("d",path).attr("fill",PAL.water).attr("stroke",PAL.border).attr("stroke-width",0.8);
+    // Sphere (water)
+    g.append("path").datum({type:"Sphere"}).attr("d",path)
+      .attr("fill",PAL.water).attr("stroke",PAL.border).attr("stroke-width",0.8)
+      .attr("class","sphere-path");
 
+    // Graticule
+    g.append("path").datum(d3.geoGraticule()())
+      .attr("d",path).attr("fill","none")
+      .attr("stroke",PAL.grat).attr("stroke-width",0.3);
+
+    // Countries
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
       .then(r=>r.json()).then(world=>{
         const countries=topojson.feature(world,world.objects.countries);
         const borders=topojson.mesh(world,world.objects.countries,(a,b)=>a!==b);
-        g.append("g").selectAll("path").data(countries.features).join("path")
+        g.append("g").attr("class","countries")
+          .selectAll("path").data(countries.features).join("path")
           .attr("d",path).attr("fill",PAL.land).attr("stroke","none");
-        g.append("path").datum(borders).attr("d",path).attr("fill","none")
-          .attr("stroke",PAL.border).attr("stroke-width",0.5);
+        g.append("path").datum(borders)
+          .attr("d",path).attr("fill","none")
+          .attr("stroke",PAL.border).attr("stroke-width",0.4);
         setReady(true);
       }).catch(()=>setReady(true));
 
-    const zoom=d3.zoom().scaleExtent([1,14])
-      .translateExtent([[-W*0.5,-H*0.5],[W*1.5,H*1.5]])
+    // Zoom — only transforms the map-g group
+    const zoom=d3.zoom()
+      .scaleExtent([1,12])
+      .translateExtent([[-W*0.3,-H*0.3],[W*1.3,H*1.3]])
       .on("zoom",e=>{
-        g.attr("transform",e.transform);
-        zoomTransformRef.current=e.transform;
-        setZoomK(e.transform.k);
+        g.attr("transform",e.transform.toString());
+        setTransform({k:e.transform.k,x:e.transform.x,y:e.transform.y});
       });
     svg.call(zoom);
+    zoomBehaviorRef.current=zoom;
 
-    const handleResize=()=>{ const W2=window.innerWidth,H2=window.innerHeight; svg.attr("width",W2).attr("height",H2); };
-    window.addEventListener("resize",handleResize);
-    return()=>window.removeEventListener("resize",handleResize);
+    return()=>{
+      d3.select(el).selectAll("svg").remove();
+      svgRef.current=null;
+    };
   },[]);
 
-  // Clustering + dot rendering — reruns on zoom change or data change
-  useEffect(()=>{
-    if(!ready||!projRef.current||!gRef.current)return;
-    const g=gRef.current;
-    g.selectAll(".spit-layer").remove();
-    const spitG=g.append("g").attr("class","spit-layer");
-    const k=zoomTransformRef.current.k;
-
-    // Project all spits to current screen coords
+  // Render dots as React overlay (not D3) — avoids all transition conflicts
+  const dots=useMemo(()=>{
+    if(!projRef.current||!ready)return[];
+    const k=transform.k;
+    const CLUSTER_R=35;
     const projected=spits.map(s=>{
       const p=projRef.current([s.lon,s.lat]);
-      return p?{...s,sx:p[0],sy:p[1]}:null;
+      if(!p)return null;
+      // Apply current zoom transform to get screen position
+      const sx=p[0]*k+transform.x;
+      const sy=p[1]*k+transform.y;
+      return{...s,sx,sy};
     }).filter(Boolean);
 
-    // Simple screen-space clustering: group points within radius/k pixels
-    const CLUSTER_RADIUS=40; // screen pixels at zoom=1
+    // Cluster
     const used=new Set();
     const clusters=[];
-
     projected.forEach((s,i)=>{
       if(used.has(i))return;
       const group=[s];
       used.add(i);
-      if(k<4){ // only cluster when zoomed out
+      if(k<3.5){
         projected.forEach((s2,j)=>{
           if(used.has(j))return;
-          const dx=(s.sx-s2.sx)*k,dy=(s.sy-s2.sy)*k;
-          if(Math.sqrt(dx*dx+dy*dy)<CLUSTER_RADIUS){group.push(s2);used.add(j);}
+          const dx=s.sx-s2.sx,dy=s.sy-s2.sy;
+          if(Math.sqrt(dx*dx+dy*dy)<CLUSTER_R){group.push(s2);used.add(j);}
         });
       }
       clusters.push(group);
     });
-
-    // Dot size compensated for zoom (stays visually same size)
-    const dotR=6/k;
-    const clusterR=18/k;
-
-    clusters.forEach((group,ci)=>{
-      const cx=group.reduce((a,s)=>a+s.sx,0)/group.length;
-      const cy=group.reduce((a,s)=>a+s.sy,0)/group.length;
-      const isCluster=group.length>1;
-      const hasActive=group.some(s=>s.id===activeSpit?.id);
-
-      if(isCluster){
-        // Cluster bubble
-        const bubbleR=clusterR*(0.8+group.length*0.06);
-        spitG.append("circle").attr("cx",cx).attr("cy",cy).attr("r",bubbleR*1.6)
-          .attr("fill",RAUSCH).attr("opacity",0.15).attr("pointer-events","none");
-        spitG.append("circle").attr("cx",cx).attr("cy",cy).attr("r",bubbleR)
-          .attr("fill",RAUSCH).attr("stroke","#fff").attr("stroke-width",1.5/k)
-          .attr("cursor","pointer")
-          .on("click",e=>{e.stopPropagation();onSpitClick(group[0]);});
-        spitG.append("text").attr("x",cx).attr("y",cy+4/k)
-          .attr("text-anchor","middle").attr("fill","#fff")
-          .attr("font-size",`${12/k}px`).attr("font-weight","700")
-          .attr("font-family","-apple-system,sans-serif").attr("pointer-events","none")
-          .text(group.length);
-      } else {
-        // Individual heartbeat dot
-        const s=group[0];
-        const isActive=s.id===activeSpit?.id;
-        const r=isActive?dotR*1.6:dotR;
-        const delay=((s.id*137)%300)/100; // pseudo-random offset per spit
-
-        // Glow ring (heartbeat pulse via CSS)
-        const ring=spitG.append("circle").attr("cx",cx).attr("cy",cy).attr("r",r*2.2)
-          .attr("fill",RAUSCH).attr("opacity",0).attr("pointer-events","none")
-          .attr("class",`hb-ring-${s.id}`);
-
-        // Main dot
-        const dot=spitG.append("circle").attr("cx",cx).attr("cy",cy).attr("r",r)
-          .attr("fill",RAUSCH).attr("stroke","#fff").attr("stroke-width",1.5/k)
-          .attr("cursor","pointer").attr("class",`hb-dot-${s.id}`)
-          .style("filter",isActive?`drop-shadow(0 0 ${6/k}px rgba(255,56,92,0.9))`:`drop-shadow(0 0 ${3/k}px rgba(255,56,92,0.6))`);
-
-        dot.on("click",e=>{e.stopPropagation();onSpitClick(s);})
-           .on("mouseover",function(){
-             d3.select(this).attr("r",r*1.4);
-             spitG.append("text").attr("class","spit-tip")
-               .attr("x",cx).attr("y",cy-r*2.5).attr("text-anchor","middle")
-               .attr("fill",isDay?"#222":"#fff").attr("font-size",`${11/k}px`)
-               .attr("font-weight","600").attr("font-family","-apple-system,sans-serif")
-               .attr("pointer-events","none")
-               .style("paint-order","stroke").style("stroke",isDay?"#e8edf5":"#111828")
-               .style("stroke-width",`${3/k}px`).text(s.handle);
-           }).on("mouseout",function(){
-             d3.select(this).attr("r",r);
-             spitG.selectAll(".spit-tip").remove();
-           });
-
-        // Heartbeat animation via d3 transition loop
-        const beat=()=>{
-          dot.transition().duration(120).attr("r",r*1.45)
-            .transition().duration(100).attr("r",r)
-            .transition().duration(80).attr("r",r*1.2)
-            .transition().duration(100).attr("r",r)
-            .transition().delay(1400+(delay*300)).on("end",beat);
-          ring.transition().duration(120).attr("r",r*2.8).attr("opacity",0.25)
-            .transition().duration(300).attr("r",r*4).attr("opacity",0)
-            .transition().delay(1400+(delay*300));
-        };
-        setTimeout(beat, delay*300);
-      }
-    });
-  },[ready,spits,activeSpit,following,zoomK]);
+    return clusters;
+  },[ready,spits,transform]);
 
   return(
-    <svg ref={svgRef} style={{display:"block",width:"100vw",height:"100vh",cursor:"grab"}}/>
+    <div ref={containerRef} style={{width:"100%",height:"100%",position:"relative",cursor:"grab",overflow:"hidden"}}>
+      {/* D3 SVG map underneath */}
+
+      {/* React dots overlay on top */}
+      {ready&&dots.map((group,i)=>{
+        const cx=group.reduce((a,s)=>a+s.sx,0)/group.length;
+        const cy=group.reduce((a,s)=>a+s.sy,0)/group.length;
+        const isCluster=group.length>1;
+        const isActive=group.some(s=>s.id===activeSpit?.id);
+        const key=group.map(s=>s.id).join("-");
+
+        if(isCluster){
+          return(
+            <div key={key} onClick={()=>onSpitClick(group[0])}
+              style={{position:"absolute",left:cx,top:cy,transform:"translate(-50%,-50%)",
+                width:36,height:36,borderRadius:"50%",
+                background:RAUSCH,border:"2.5px solid #fff",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                cursor:"pointer",
+                boxShadow:"0 2px 8px rgba(255,56,92,0.5)",
+                fontSize:13,fontWeight:700,color:"#fff",
+                fontFamily:"-apple-system,sans-serif",
+                zIndex:10,
+              }}>
+              {group.length}
+            </div>
+          );
+        }
+        const s=group[0];
+        return(
+          <div key={key} onClick={()=>onSpitClick(s)}
+            title={s.handle}
+            style={{position:"absolute",left:cx,top:cy,transform:"translate(-50%,-50%)",
+              width:isActive?20:14,height:isActive?20:14,
+              borderRadius:"50%",
+              background:RAUSCH,
+              border:`${isActive?3:2}px solid #fff`,
+              cursor:"pointer",
+              boxShadow:isActive
+                ?"0 0 0 5px rgba(255,56,92,0.25),0 2px 10px rgba(255,56,92,0.6)"
+                :"0 0 0 3px rgba(255,56,92,0.15),0 1px 6px rgba(255,56,92,0.4)",
+              zIndex:isActive?20:10,
+              animation:`hbDot ${1.4+(s.id%3)*0.2}s ease-in-out ${(s.id%5)*0.15}s infinite`,
+              transformOrigin:"center",
+            }}/>
+        );
+      })}
+    </div>
   );
 }
 
