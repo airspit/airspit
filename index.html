@@ -285,6 +285,11 @@ function Player({duration,audioUrl}){
   );
 }
 
+// ── SpitCard ──────────────────────────────────────────────────────────────────
+function SpitCard({spit,onClose,following,onFollowToggle,currentUser}){
+  const[myR,setMyR]=useState([]);
+  const[reactions,setReactions]=useState(spit.reactions||{});
+  const[translated,setTranslated]=useState(null);
   const[translating,setTranslating]=useState(false);
   const[showFull,setShowFull]=useState(false);
   const userLang=(navigator.language||"es").split("-")[0];
