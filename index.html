@@ -156,6 +156,22 @@ function AuthScreen({onLogin}){
 
 // ── Globe SVG ─────────────────────────────────────────────────────────────────
 function GlobeSVG({spits,onSpitClick,activeSpit}){
+  // Group spits that are within 4% of each other on the globe
+  const CLUSTER_DIST=4;
+  const used=new Set();
+  const clusters=[];
+  spits.forEach((s,i)=>{
+    if(used.has(i))return;
+    const group=[s];
+    used.add(i);
+    spits.forEach((s2,j)=>{
+      if(used.has(j))return;
+      const dx=(s.x||50)-(s2.x||50), dy=(s.y||50)-(s2.y||50);
+      if(Math.sqrt(dx*dx+dy*dy)<CLUSTER_DIST){group.push(s2);used.add(j);}
+    });
+    clusters.push(group);
+  });
+
   return(
     <div style={{position:"relative",width:"100%",height:"100%"}}>
       <svg viewBox="0 0 100 100" style={{width:"100%",height:"100%",position:"absolute"}}>
@@ -191,12 +207,22 @@ function GlobeSVG({spits,onSpitClick,activeSpit}){
         <circle cx="50" cy="50" r="42" fill="url(#gS)" clipPath="url(#gC)"/>
         <circle cx="50" cy="50" r="42" fill="none" stroke="#a8b8cc" strokeWidth="0.3"/>
       </svg>
-      {spits.map(s=>{
-        const isActive=activeSpit?.id===s.id;
-        const x=s.x||50, y=s.y||50;
+
+      {clusters.map((group,i)=>{
+        const cx=group.reduce((a,s)=>a+(s.x||50),0)/group.length;
+        const cy=group.reduce((a,s)=>a+(s.y||50),0)/group.length;
+        const isCluster=group.length>1;
+        const isActive=!isCluster&&activeSpit?.id===group[0].id;
         return(
-          <button key={s.id} onClick={()=>onSpitClick(s)} style={{position:"absolute",left:`${x}%`,top:`${y}%`,transform:"translate(-50%,-50%)",background:"none",border:"none",cursor:"pointer",padding:0,zIndex:10}}>
-            <div style={{width:isActive?16:10,height:isActive?16:10,borderRadius:"50%",background:RAUSCH,boxShadow:isActive?`0 0 0 4px rgba(255,56,92,0.25),0 0 16px rgba(255,56,92,0.5)`:`0 0 0 2px rgba(255,56,92,0.15),0 2px 6px rgba(255,56,92,0.35)`,transition:"all 0.3s ease",animation:"pulse 2.5s ease-in-out infinite"}}/>
+          <button key={i} onClick={()=>onSpitClick(group)}
+            style={{position:"absolute",left:`${cx}%`,top:`${cy}%`,transform:"translate(-50%,-50%)",background:"none",border:"none",cursor:"pointer",padding:0,zIndex:10}}>
+            {isCluster?(
+              <div style={{width:28,height:28,borderRadius:"50%",background:RAUSCH,border:"2.5px solid #fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(255,56,92,0.5)",fontSize:11,fontWeight:700,color:"#fff",animation:"pulse 2.5s ease-in-out infinite"}}>
+                {group.length}
+              </div>
+            ):(
+              <div style={{width:isActive?16:10,height:isActive?16:10,borderRadius:"50%",background:RAUSCH,boxShadow:isActive?`0 0 0 4px rgba(255,56,92,0.25),0 0 16px rgba(255,56,92,0.5)`:`0 0 0 2px rgba(255,56,92,0.15),0 2px 6px rgba(255,56,92,0.35)`,transition:"all 0.3s ease",animation:"pulse 2.5s ease-in-out infinite"}}/>
+            )}
           </button>
         );
       })}
@@ -449,12 +475,16 @@ function RecordModal({onClose,currentUser,onSaved}){
         {error&&<div style={{fontSize:12,color:RAUSCH,background:"#fff0f3",padding:"8px 12px",borderRadius:8,marginBottom:16}}>{error}</div>}
         {!done?(
           <div style={{textAlign:"center",paddingBottom:8}}>
-            <div style={{fontSize:60,fontWeight:700,letterSpacing:-2,color:recording?RAUSCH:"#ddd",marginBottom:4,transition:"color 0.3s"}}>
-              {String(Math.floor(seconds/60)).padStart(2,"0")}:{String(seconds%60).padStart(2,"0")}
+            <div style={{fontSize:60,fontWeight:700,letterSpacing:-2,color:recording?(90-seconds<10?RAUSCH:"#222"):"#ddd",marginBottom:4,transition:"color 0.3s"}}>
+              {String(Math.floor((90-seconds)/60)).padStart(2,"0")}:{String((90-seconds)%60).padStart(2,"0")}
             </div>
-            <div style={{fontSize:12,color:"#bbb",marginBottom:28}}>mín. 3s · máx. 1:30</div>
-            <div style={{height:4,background:"#f0f0f0",borderRadius:2,marginBottom:36}}>
-              <div style={{height:"100%",background:RAUSCH,borderRadius:2,width:`${(seconds/90)*100}%`,transition:"width 1s linear"}}/>
+            <div style={{fontSize:11,color:"#bbb",marginBottom:4}}>
+              {recording
+                ? <span style={{color:"#aaa"}}>grabando · {seconds}s</span>
+                : "tiempo disponible"}
+            </div>
+            <div style={{height:4,background:"#f0f0f0",borderRadius:2,marginBottom:36,overflow:"hidden"}}>
+              <div style={{height:"100%",background:90-seconds<10?RAUSCH:"#22c55e",borderRadius:2,width:`${((90-seconds)/90)*100}%`,transition:"width 1s linear"}}/>
             </div>
             <button onClick={recording?stop:start} style={{width:80,height:80,borderRadius:"50%",background:recording?RAUSCH:"#fff",border:recording?"none":"2px solid #e8e8e8",cursor:"pointer",fontSize:28,boxShadow:recording?`0 0 0 12px rgba(255,56,92,0.1),0 4px 20px rgba(255,56,92,0.4)`:"0 2px 12px rgba(0,0,0,0.1)",transition:"all 0.3s"}}>
               {recording?"⏹":"🎙"}
@@ -482,8 +512,15 @@ function App(){
   const[checking,setChecking]=useState(true);
   const[spits,setSpits]=useState([]);
   const[activeSpit,setActiveSpit]=useState(null);
+  const[clusterList,setClusterList]=useState(null);
   const[showRecord,setShowRecord]=useState(false);
   const[following,setFollowing]=useState([]);
+
+  const handleSpitClick=(group)=>{
+    if(!group||group.length===0)return;
+    if(group.length===1){setActiveSpit(group[0]);setClusterList(null);}
+    else{setClusterList(group);setActiveSpit(null);}
+  };
 
   // Restore session
   useEffect(()=>{
@@ -554,11 +591,39 @@ function App(){
       <main style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 0 160px",position:"relative"}}>
         <div style={{background:"#fff",borderRadius:20,boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:24}}>
           <div style={{width:"min(420px,75vw)",height:"min(420px,75vw)",position:"relative"}}>
-            <GlobeSVG spits={spits} onSpitClick={setActiveSpit} activeSpit={activeSpit}/>
+            <GlobeSVG spits={spits} onSpitClick={handleSpitClick} activeSpit={activeSpit}/>
           </div>
         </div>
         <p style={{fontSize:12,color:"#bbb",marginTop:14}}>Tocá un punto para escuchar</p>
         {activeSpit&&<SpitCard spit={activeSpit} onClose={()=>setActiveSpit(null)} following={following} onFollowToggle={toggleFollow} currentUser={user}/>}
+        {clusterList&&(
+          <div style={{position:"absolute",bottom:16,left:"50%",transform:"translateX(-50%)",width:"min(460px,92vw)",background:"#fff",borderRadius:16,boxShadow:"0 8px 40px rgba(0,0,0,0.12)",zIndex:100,overflow:"hidden",animation:"slideUp 0.25s ease"}}>
+            <div style={{height:3,background:`linear-gradient(90deg,${RAUSCH},#ff7a8a)`}}/>
+            <div style={{padding:"16px 20px 20px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+                <span style={{fontSize:15,fontWeight:700,color:"#222"}}>{clusterList.length} spits en esta zona</span>
+                <button onClick={()=>setClusterList(null)} style={{background:"#f5f5f5",border:"none",borderRadius:"50%",width:28,height:28,cursor:"pointer",fontSize:14,color:"#888"}}>×</button>
+              </div>
+              <div style={{maxHeight:260,overflowY:"auto",display:"flex",flexDirection:"column",gap:2}}>
+                {clusterList.map(s=>(
+                  <div key={s.id} onClick={()=>{setActiveSpit(s);setClusterList(null);}}
+                    style={{display:"flex",alignItems:"center",gap:12,padding:"10px 8px",borderRadius:10,cursor:"pointer",transition:"background 0.15s"}}
+                    onMouseOver={e=>e.currentTarget.style.background="#f9f9f9"}
+                    onMouseOut={e=>e.currentTarget.style.background="transparent"}>
+                    <div style={{width:36,height:36,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
+                      {s.role==="Anfitrión"?"🏠":s.role==="Huésped"?"🧳":"🗂️"}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:600,color:"#222"}}>{s.handle}</div>
+                      <div style={{fontSize:11,color:"#aaa"}}>{s.role} · {s.duration}s{s.audio_url?" · 🔊":""}</div>
+                    </div>
+                    <span style={{color:RAUSCH,fontSize:16}}>▶</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       {showRecord&&<RecordModal onClose={()=>setShowRecord(false)} currentUser={user} onSaved={()=>dbGetSpits().then(data=>{
         const positioned=data.map(s=>({...s,x:s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20,y:s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20}));
