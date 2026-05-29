@@ -412,9 +412,19 @@ function RecordModal({onClose,currentUser,onSaved}){
   const[done,setDone]=useState(false);
   const[saving,setSaving]=useState(false);
   const[error,setError]=useState("");
+  const[effect,setEffect]=useState("normal"); // normal | ardilla | sombra
+  const[previewing,setPreviewing]=useState(false);
   const tRef=useRef(null);
   const mrRef=useRef(null);
   const chunksRef=useRef([]);
+  const audioCtxRef=useRef(null);
+  const sourceRef=useRef(null);
+
+  const EFFECTS={
+    normal:{label:"Normal",emoji:"🎙",desc:"Tu voz tal cual",rate:1,pitch:1},
+    ardilla:{label:"Ardilla",emoji:"🐿️",desc:"Aguda y divertida",rate:1.4,pitch:1.4},
+    sombra:{label:"Sombra",emoji:"👤",desc:"Grave y anónima",rate:0.8,pitch:0.7},
+  };
 
   const start=async()=>{
     setError("");
@@ -440,11 +450,85 @@ function RecordModal({onClose,currentUser,onSaved}){
     }else if(seconds>=3)setDone(true);
   };
 
-  const save=async()=>{
-    setSaving(true);
+  const stopPreview=()=>{
+    if(sourceRef.current){try{sourceRef.current.stop();}catch(e){}}
+    if(audioCtxRef.current){try{audioCtxRef.current.close();}catch(e){}}
+    sourceRef.current=null;
+    audioCtxRef.current=null;
+    setPreviewing(false);
+  };
+
+  const preview=async()=>{
+    stopPreview();
     try{
       const blob=new Blob(chunksRef.current,{type:"audio/webm"});
-      const fn=`${(currentUser.handle||"anon").replace("@","")}_${Date.now()}.webm`;
+      const arrayBuf=await blob.arrayBuffer();
+      const ctx=new AudioContext();
+      audioCtxRef.current=ctx;
+      const decoded=await ctx.decodeAudioData(arrayBuf);
+      const source=ctx.createBufferSource();
+      source.buffer=decoded;
+      const cfg=EFFECTS[effect];
+      source.playbackRate.value=cfg.rate;
+      source.connect(ctx.destination);
+      source.start();
+      sourceRef.current=source;
+      setPreviewing(true);
+      source.onended=()=>{setPreviewing(false);};
+    }catch(e){setError("No se pudo previsualizar el audio.");}
+  };
+
+  // Apply effect to blob before upload
+  const applyEffectAndGetBlob=async()=>{
+    const cfg=EFFECTS[effect];
+    if(cfg.rate===1) return new Blob(chunksRef.current,{type:"audio/webm"});
+    try{
+      const blob=new Blob(chunksRef.current,{type:"audio/webm"});
+      const arrayBuf=await blob.arrayBuffer();
+      const ctx=new OfflineAudioContext(2,44100*seconds*2,44100);
+      const decoded=await new AudioContext().decodeAudioData(arrayBuf);
+      const source=ctx.createBufferSource();
+      source.buffer=decoded;
+      source.playbackRate.value=cfg.rate;
+      source.connect(ctx.destination);
+      source.start();
+      const rendered=await ctx.startRendering();
+      // Convert to wav blob
+      const wavBlob=audioBufferToWav(rendered);
+      return wavBlob;
+    }catch(e){
+      return new Blob(chunksRef.current,{type:"audio/webm"});
+    }
+  };
+
+  // Simple AudioBuffer to WAV converter
+  const audioBufferToWav=(buffer)=>{
+    const ch=buffer.numberOfChannels;
+    const len=buffer.length;
+    const rate=buffer.sampleRate;
+    const arrayBuf=new ArrayBuffer(44+len*ch*2);
+    const view=new DataView(arrayBuf);
+    const writeStr=(o,s)=>{for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));};
+    writeStr(0,"RIFF");view.setUint32(4,36+len*ch*2,true);writeStr(8,"WAVE");
+    writeStr(12,"fmt ");view.setUint32(16,16,true);view.setUint16(20,1,true);
+    view.setUint16(22,ch,true);view.setUint32(24,rate,true);
+    view.setUint32(28,rate*ch*2,true);view.setUint16(32,ch*2,true);
+    view.setUint16(34,16,true);writeStr(36,"data");view.setUint32(40,len*ch*2,true);
+    let offset=44;
+    for(let i=0;i<len;i++){for(let c=0;c<ch;c++){
+      const s=Math.max(-1,Math.min(1,buffer.getChannelData(c)[i]));
+      view.setInt16(offset,s<0?s*0x8000:s*0x7FFF,true);offset+=2;
+    }}
+    return new Blob([arrayBuf],{type:"audio/wav"});
+  };
+
+  const save=async()=>{
+    stopPreview();
+    setSaving(true);
+    try{
+      const blob=await applyEffectAndGetBlob();
+      const ext=effect==="normal"?"webm":"wav";
+      const fn=`${(currentUser.handle||"anon").replace("@","")}_${Date.now()}.${ext}`;
       const audioUrl=await dbUploadAudio(blob,fn);
       let lat=0,lon=0;
       try{
@@ -459,7 +543,7 @@ function RecordModal({onClose,currentUser,onSaved}){
     }catch(e){setError("Error al guardar. Intentá de nuevo.");setSaving(false);}
   };
 
-  useEffect(()=>()=>clearInterval(tRef.current),[]);
+  useEffect(()=>()=>{clearInterval(tRef.current);stopPreview();},[]);
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(4px)"}}>
@@ -473,15 +557,14 @@ function RecordModal({onClose,currentUser,onSaved}){
           <button onClick={onClose} style={{background:"#f5f5f5",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:16,color:"#888"}}>×</button>
         </div>
         {error&&<div style={{fontSize:12,color:RAUSCH,background:"#fff0f3",padding:"8px 12px",borderRadius:8,marginBottom:16}}>{error}</div>}
+
         {!done?(
           <div style={{textAlign:"center",paddingBottom:8}}>
             <div style={{fontSize:60,fontWeight:700,letterSpacing:-2,color:recording?(90-seconds<10?RAUSCH:"#222"):"#ddd",marginBottom:4,transition:"color 0.3s"}}>
               {String(Math.floor((90-seconds)/60)).padStart(2,"0")}:{String((90-seconds)%60).padStart(2,"0")}
             </div>
             <div style={{fontSize:11,color:"#bbb",marginBottom:4}}>
-              {recording
-                ? <span style={{color:"#aaa"}}>grabando · {seconds}s</span>
-                : "tiempo disponible"}
+              {recording?<span style={{color:"#aaa"}}>grabando · {seconds}s</span>:"tiempo disponible"}
             </div>
             <div style={{height:4,background:"#f0f0f0",borderRadius:2,marginBottom:36,overflow:"hidden"}}>
               <div style={{height:"100%",background:90-seconds<10?RAUSCH:"#22c55e",borderRadius:2,width:`${((90-seconds)/90)*100}%`,transition:"width 1s linear"}}/>
@@ -492,13 +575,54 @@ function RecordModal({onClose,currentUser,onSaved}){
             <div style={{fontSize:13,color:"#bbb",marginTop:14}}>{recording?"Tocá para terminar":"Tocá para grabar"}</div>
           </div>
         ):(
-          <div style={{textAlign:"center",paddingBottom:8}}>
-            <div style={{width:64,height:64,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 16px"}}>🔥</div>
-            <div style={{fontSize:22,fontWeight:700,color:"#222",marginBottom:6}}>¡Escupido!</div>
-            <div style={{fontSize:13,color:"#aaa",marginBottom:28}}>{seconds}s · {currentUser.handle}</div>
-            <button onClick={save} disabled={saving} style={{width:"100%",padding:16,borderRadius:12,background:saving?"#ffb3c0":RAUSCH,border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:saving?"not-allowed":"pointer",boxShadow:"0 4px 16px rgba(255,56,92,0.3)"}}>
+          <div style={{paddingBottom:8}}>
+            {/* Effect selector */}
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:10,textTransform:"uppercase",letterSpacing:0.5}}>Elegí tu voz</div>
+              <div style={{display:"flex",gap:8}}>
+                {Object.entries(EFFECTS).map(([key,cfg])=>(
+                  <button key={key} onClick={()=>{stopPreview();setEffect(key);}} style={{
+                    flex:1,padding:"12px 8px",borderRadius:12,cursor:"pointer",
+                    background:effect===key?"#fff0f3":"#f7f7f7",
+                    border:`1.5px solid ${effect===key?RAUSCH:"#e8e8e8"}`,
+                    transition:"all 0.15s",textAlign:"center",
+                  }}>
+                    <div style={{fontSize:22,marginBottom:4}}>{cfg.emoji}</div>
+                    <div style={{fontSize:12,fontWeight:600,color:effect===key?RAUSCH:"#333"}}>{cfg.label}</div>
+                    <div style={{fontSize:10,color:"#aaa",marginTop:2}}>{cfg.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Preview button */}
+            <button onClick={previewing?stopPreview:preview} style={{
+              width:"100%",padding:14,borderRadius:12,marginBottom:10,
+              background:previewing?"#f0f0f0":"#f7f7f7",
+              border:`1.5px solid ${previewing?RAUSCH:"#e8e8e8"}`,
+              color:previewing?RAUSCH:"#555",fontSize:14,fontWeight:600,cursor:"pointer",
+              display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+            }}>
+              {previewing?(
+                <><span style={{fontSize:16}}>⏹</span> Parar preview</>
+              ):(
+                <><span style={{fontSize:16}}>▶</span> Escuchar antes de publicar</>
+              )}
+            </button>
+
+            {/* Publish */}
+            <button onClick={save} disabled={saving} style={{
+              width:"100%",padding:16,borderRadius:12,
+              background:saving?"#ffb3c0":RAUSCH,
+              border:"none",color:"#fff",fontSize:15,fontWeight:700,
+              cursor:saving?"not-allowed":"pointer",
+              boxShadow:"0 4px 16px rgba(255,56,92,0.3)",
+            }}>
               {saving?"Guardando...":"Publicar en el globo 🌍"}
             </button>
+            <div style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:8}}>
+              {seconds}s · efecto: {EFFECTS[effect].label}
+            </div>
           </div>
         )}
       </div>
