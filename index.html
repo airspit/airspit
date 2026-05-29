@@ -147,7 +147,7 @@ function AuthScreen({onLogin}){
           <button onClick={submit} disabled={loading} style={{width:"100%",padding:16,borderRadius:10,background:loading?"#ffb3c0":RAUSCH,border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"not-allowed":"pointer",boxShadow:"0 4px 16px rgba(255,56,92,0.3)"}}>
             {loading?"...":mode==="login"?"Entrar":"Crear cuenta"}
           </button>
-          {mode==="login"&&<button onClick={()=>onLogin({email:"demo@airspit.com",handle:"@demo",role:"Anfitrión"})} style={{background:"none",border:"1.5px solid #e8e8e8",borderRadius:10,padding:12,fontSize:13,color:"#888",cursor:"pointer"}}>Entrar sin cuenta →</button>}
+
         </div>
       </div>
     </div>
