@@ -540,7 +540,12 @@ function App(){
           <span style={{color:RAUSCH}}>air</span>spit
         </div>
         <div style={{display:"flex",gap:12,alignItems:"center"}}>
-          <span style={{fontSize:12,color:"#aaa"}}><span style={{color:RAUSCH}}>●</span> {spits.length} spits</span>
+          {/* Global counter */}
+          <div style={{textAlign:"center",lineHeight:1}}>
+            <div style={{fontSize:16,fontWeight:800,color:RAUSCH,letterSpacing:-0.5}}>{spits.length.toLocaleString()}</div>
+            <div style={{fontSize:9,color:"#bbb",textTransform:"uppercase",letterSpacing:1}}>spits globales</div>
+          </div>
+          <div style={{width:1,height:28,background:"#ebebeb"}}/>
           <span style={{fontSize:12,color:"#888",background:"#f5f5f5",padding:"4px 10px",borderRadius:20}}>{user.handle}</span>
           <button onClick={logout} style={{background:"none",border:"none",fontSize:12,color:"#bbb",cursor:"pointer"}}>Salir</button>
           <button onClick={()=>setShowRecord(true)} style={{background:RAUSCH,border:"none",color:"#fff",padding:"10px 18px",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600,boxShadow:`0 2px 8px rgba(255,56,92,0.3)`}}>+ Escupir</button>
