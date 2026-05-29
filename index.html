@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AirSpit</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f7f7}
+@keyframes pulse{0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.75;transform:translate(-50%,-50%) scale(1.25)}}
+@keyframes wave{from{transform:scaleY(0.3)}to{transform:scaleY(1)}}
+@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes sheetUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+const RAUSCH='#FF385C';
+const EMOJIS=["🙌","😳","😅","😤","🫣","🥴","🤭","😉"];
+const MAX_REACTIONS=3;
+const SPEEDS=[1,1.5,2];
+const LANG_NAMES={es:"español",en:"inglés",fr:"francés",ja:"japonés",de:"alemán",pt:"portugués",it:"italiano"};
+const ROLES=["Anfitrión","Huésped","Property Manager"];
+const GENDERS=["M","F","No especifico"];
+
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const sb=supabase.createClient(
+  "https://rmyyfhmnjbhclbytmscm.supabase.co",
+  "sb_publishable_lYe6NtQadIIlIQ9CzuClFA_tDMo1Bhk"
+);
+
+async function dbRegister(email,password,handle,role){
+  const{data:a,error:e}=await sb.auth.signUp({email,password});
+  if(e)return{error:e.message};
+  await sb.from("users").insert([{email,handle,role,auth_id:a.user?.id}]);
+  return{ok:true};
+}
+async function dbLogin(email,password){
+  const{data:a,error:e}=await sb.auth.signInWithPassword({email,password});
+  if(e)return{error:"Email o contraseña incorrectos."};
+  const{data:u}=await sb.from("users").select("*").eq("email",email).single();
+  return{data:u};
+}
+async function dbGetSession(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session)return null;
+  const{data}=await sb.from("users").select("*").eq("auth_id",session.user.id).single();
+  return data||null;
+}
+async function dbGetSpits(){
+  const{data}=await sb.from("spits").select("*").order("created_at",{ascending:false});
+  return(data||[]).map(s=>({...s,reactions:{}}));
+}
+async function dbInsertSpit(spit){
+  const{data,error}=await sb.from("spits").insert([spit]).select().single();
+  return{data,error};
+}
+async function dbUploadAudio(blob,filename){
+  const{error}=await sb.storage.from("audios").upload(filename,blob,{contentType:"audio/webm",upsert:true});
+  if(error)return null;
+  const{data}=sb.storage.from("audios").getPublicUrl(filename);
+  return data.publicUrl;
+}
+async function translateText(text,targetLang,sourceLang){
+  const src=sourceLang?.split("-")[0],tgt=targetLang?.split("-")[0];
+  if(!src||!tgt||src===tgt)return null;
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:500,
+        messages:[{role:"user",content:`Translate to ${tgt}. Return ONLY the translation:\n\n${text}`}]})
+    });
+    const d=await res.json();
+    return d.content?.[0]?.text?.trim()||null;
+  }catch{return null;}
+}
+
+// ── Auth Screen ───────────────────────────────────────────────────────────────
+function AuthScreen({onLogin}){
+  const[mode,setMode]=useState("login");
+  const[email,setEmail]=useState("");
+  const[handle,setHandle]=useState("");
+  const[password,setPassword]=useState("");
+  const[role,setRole]=useState("");
+  const[error,setError]=useState("");
+  const[loading,setLoading]=useState(false);
+  const iStyle={width:"100%",padding:"12px 14px",background:"#f7f7f7",border:"1.5px solid #ebebeb",borderRadius:10,fontSize:14,color:"#222",outline:"none"};
+
+  const submit=async()=>{
+    setError("");
+    if(!email||!password){setError("Completá email y contraseña.");return;}
+    setLoading(true);
+    if(mode==="register"){
+      if(!handle||!role){setError("Completá todos los campos.");setLoading(false);return;}
+      const h="@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,"");
+      const{error:err}=await dbRegister(email,password,h,role);
+      if(err){setError(err);setLoading(false);return;}
+      onLogin({email,handle:h,role});
+    }else{
+      const{data,error:err}=await dbLogin(email,password);
+      if(err){setError(err);setLoading(false);return;}
+      onLogin({email:data.email,handle:data.handle,role:data.role});
+    }
+    setLoading(false);
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:"#fff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{marginBottom:40,textAlign:"center"}}>
+        <div style={{fontSize:34,fontWeight:800,letterSpacing:-1.5}}>
+          <span style={{color:RAUSCH}}>air</span><span style={{color:"#222"}}>spit</span>
+        </div>
+        <div style={{fontSize:12,color:"#aaa",marginTop:4}}>hospitalidad sin filtros</div>
+      </div>
+      <div style={{width:"100%",maxWidth:380,background:"#fff",borderRadius:16,boxShadow:"0 4px 32px rgba(0,0,0,0.08)",padding:"32px 28px",animation:"fadeUp 0.4s ease"}}>
+        <div style={{display:"flex",marginBottom:28,borderBottom:"1.5px solid #f0f0f0"}}>
+          {["login","register"].map(m=>(
+            <button key={m} onClick={()=>{setMode(m);setError("");}} style={{flex:1,padding:"0 0 14px",border:"none",background:"none",fontSize:14,fontWeight:600,cursor:"pointer",color:mode===m?RAUSCH:"#aaa",borderBottom:mode===m?`2px solid ${RAUSCH}`:"2px solid transparent",marginBottom:"-1.5px",transition:"all 0.2s"}}>
+              {m==="login"?"Entrar":"Registrarse"}
+            </button>
+          ))}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <input type="email" placeholder="Correo electrónico" value={email} onChange={e=>setEmail(e.target.value)} style={iStyle}/>
+          {mode==="register"&&<>
+            <div style={{position:"relative"}}>
+              <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"#aaa"}}>@</span>
+              <input type="text" placeholder="usuario" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} style={{...iStyle,paddingLeft:28}}/>
+            </div>
+            <p style={{fontSize:11,color:"#bbb",marginTop:-8}}>Tu seudónimo — no uses tu nombre real</p>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {ROLES.map(r=>(
+                <button key={r} onClick={()=>setRole(r)} style={{padding:"8px 14px",borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",background:role===r?RAUSCH:"#f7f7f7",border:role===r?"none":"1.5px solid #e8e8e8",color:role===r?"#fff":"#555",transition:"all 0.15s"}}>{r}</button>
+              ))}
+            </div>
+          </>}
+          <input type="password" placeholder="Contraseña" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} style={iStyle}/>
+          {error&&<div style={{fontSize:12,color:RAUSCH,background:"#fff0f3",padding:"8px 12px",borderRadius:8}}>{error}</div>}
+          <button onClick={submit} disabled={loading} style={{width:"100%",padding:16,borderRadius:10,background:loading?"#ffb3c0":RAUSCH,border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"not-allowed":"pointer",boxShadow:"0 4px 16px rgba(255,56,92,0.3)"}}>
+            {loading?"...":mode==="login"?"Entrar":"Crear cuenta"}
+          </button>
+          {mode==="login"&&<button onClick={()=>onLogin({email:"demo@airspit.com",handle:"@demo",role:"Anfitrión"})} style={{background:"none",border:"1.5px solid #e8e8e8",borderRadius:10,padding:12,fontSize:13,color:"#888",cursor:"pointer"}}>Entrar sin cuenta →</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Globe SVG ─────────────────────────────────────────────────────────────────
+function GlobeSVG({spits,onSpitClick,activeSpit}){
+  return(
+    <div style={{position:"relative",width:"100%",height:"100%"}}>
+      <svg viewBox="0 0 100 100" style={{width:"100%",height:"100%",position:"absolute"}}>
+        <defs>
+          <radialGradient id="gG" cx="38%" cy="35%" r="60%">
+            <stop offset="0%" stopColor="#e8edf5"/>
+            <stop offset="60%" stopColor="#d0d8e8"/>
+            <stop offset="100%" stopColor="#b8c4d8"/>
+          </radialGradient>
+          <radialGradient id="gS" cx="35%" cy="30%" r="40%">
+            <stop offset="0%" stopColor="#fff" stopOpacity="0.5"/>
+            <stop offset="100%" stopColor="#fff" stopOpacity="0"/>
+          </radialGradient>
+          <filter id="gSh"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#b0bcd0" floodOpacity="0.4"/></filter>
+          <clipPath id="gC"><circle cx="50" cy="50" r="42"/></clipPath>
+        </defs>
+        <ellipse cx="52" cy="96" rx="30" ry="4" fill="#c8d0e0" fillOpacity="0.5"/>
+        <circle cx="50" cy="50" r="42" fill="url(#gG)" filter="url(#gSh)"/>
+        {[20,35,50,65,80].map(y=>(
+          <ellipse key={y} cx="50" cy={y} rx={Math.sqrt(42*42-(y-50)*(y-50))} ry="2" fill="none" stroke="#a0b0c8" strokeWidth="0.2" strokeOpacity="0.4" clipPath="url(#gC)"/>
+        ))}
+        {[0,30,60,90,120,150].map(a=>(
+          <ellipse key={a} cx="50" cy="50" rx={Math.abs(Math.cos(a*Math.PI/180))*42} ry="42" fill="none" stroke="#a0b0c8" strokeWidth="0.2" strokeOpacity="0.4" clipPath="url(#gC)"/>
+        ))}
+        <g clipPath="url(#gC)" fill="#c8d4e8" fillOpacity="0.7">
+          <ellipse cx="28" cy="40" rx="9" ry="12"/>
+          <ellipse cx="52" cy="35" rx="14" ry="9"/>
+          <ellipse cx="60" cy="52" rx="8" ry="10"/>
+          <ellipse cx="72" cy="38" rx="6" ry="7"/>
+          <ellipse cx="35" cy="62" rx="5" ry="4"/>
+          <ellipse cx="78" cy="58" rx="4" ry="6"/>
+        </g>
+        <circle cx="50" cy="50" r="42" fill="url(#gS)" clipPath="url(#gC)"/>
+        <circle cx="50" cy="50" r="42" fill="none" stroke="#a8b8cc" strokeWidth="0.3"/>
+      </svg>
+      {spits.map(s=>{
+        const isActive=activeSpit?.id===s.id;
+        const x=s.x||50, y=s.y||50;
+        return(
+          <button key={s.id} onClick={()=>onSpitClick(s)} style={{position:"absolute",left:`${x}%`,top:`${y}%`,transform:"translate(-50%,-50%)",background:"none",border:"none",cursor:"pointer",padding:0,zIndex:10}}>
+            <div style={{width:isActive?16:10,height:isActive?16:10,borderRadius:"50%",background:RAUSCH,boxShadow:isActive?`0 0 0 4px rgba(255,56,92,0.25),0 0 16px rgba(255,56,92,0.5)`:`0 0 0 2px rgba(255,56,92,0.15),0 2px 6px rgba(255,56,92,0.35)`,transition:"all 0.3s ease",animation:"pulse 2.5s ease-in-out infinite"}}/>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Player ────────────────────────────────────────────────────────────────────
+function Player({duration,audioUrl}){
+  const[playing,setPlaying]=useState(false);
+  const[cur,setCur]=useState(0);
+  const[speed,setSpeed]=useState(1);
+  const intRef=useRef(null);
+  const audioRef=useRef(null);
+  const barRef=useRef(null);
+
+  useEffect(()=>{
+    if(audioUrl){
+      audioRef.current=new Audio(audioUrl);
+      audioRef.current.onended=()=>{setPlaying(false);setCur(0);};
+    }
+    return()=>{if(audioRef.current){audioRef.current.pause();audioRef.current=null;}};
+  },[audioUrl]);
+
+  useEffect(()=>{
+    if(playing){
+      if(audioRef.current){audioRef.current.playbackRate=speed;audioRef.current.play().catch(()=>{});}
+      intRef.current=setInterval(()=>{
+        setCur(s=>{const n=s+speed;if(n>=duration){setPlaying(false);clearInterval(intRef.current);return duration;}return n;});
+      },1000);
+    }else{
+      clearInterval(intRef.current);
+      if(audioRef.current)audioRef.current.pause();
+    }
+    return()=>clearInterval(intRef.current);
+  },[playing,speed]);
+
+  const skip=d=>{
+    const newT=Math.min(duration,Math.max(0,cur+d));
+    setCur(newT);
+    if(audioRef.current)audioRef.current.currentTime=newT;
+  };
+  const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+  const pct=duration>0?(cur/duration)*100:0;
+  const seek=e=>{
+    const r=barRef.current.getBoundingClientRect();
+    const t=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*duration;
+    setCur(t);
+    if(audioRef.current)audioRef.current.currentTime=t;
+  };
+  const btnS={background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,color:"#999",padding:"4px 6px"};
+
+  return(
+    <div style={{background:"#fafafa",borderRadius:12,padding:"12px 14px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
+        <button onClick={()=>skip(-10)} style={btnS}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+          <span style={{fontSize:8,color:"#bbb"}}>10</span>
+        </button>
+        <button onClick={()=>setPlaying(p=>!p)} style={{width:40,height:40,borderRadius:"50%",border:"none",cursor:"pointer",background:playing?RAUSCH:"#fff",boxShadow:playing?`0 2px 10px rgba(255,56,92,0.4)`:"0 1px 4px rgba(0,0,0,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:playing?"#fff":"#333",transition:"all 0.2s",flexShrink:0}}>
+          {playing?"⏸":"▶"}
+        </button>
+        <button onClick={()=>skip(10)} style={btnS}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-4.5"/></svg>
+          <span style={{fontSize:8,color:"#bbb"}}>10</span>
+        </button>
+        <div style={{display:"flex",alignItems:"center",gap:2,height:24,flex:1}}>
+          {[0.6,1,0.8,1.2,0.7,1.1,0.9].map((h,i)=>(
+            <div key={i} style={{width:3,borderRadius:2,background:RAUSCH,height:playing?`${h*20}px`:"4px",transition:"height 0.15s ease",animation:playing?`wave ${0.4+i*0.1}s ease-in-out infinite alternate`:"none"}}/>
+          ))}
+        </div>
+        <span style={{fontSize:11,color:"#aaa",flexShrink:0}}>{fmt(cur)}/{fmt(duration)}</span>
+        <button onClick={()=>setSpeed(s=>{const i=SPEEDS.indexOf(s);return SPEEDS[(i+1)%SPEEDS.length];})} style={{background:speed!==1?"#fff0f3":"#f0f0f0",border:`1.5px solid ${speed!==1?RAUSCH:"#e8e8e8"}`,borderRadius:6,padding:"3px 7px",cursor:"pointer",fontSize:11,fontWeight:700,color:speed!==1?RAUSCH:"#888",flexShrink:0}}>
+          {speed===1?"1x":speed===1.5?"1.5x":"2x"}
+        </button>
+      </div>
+      <div ref={barRef} onClick={seek} style={{height:4,background:"#e8e8e8",borderRadius:2,cursor:"pointer",position:"relative"}}>
+        <div style={{height:"100%",background:RAUSCH,borderRadius:2,width:`${pct}%`,transition:"width 0.8s linear",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",top:"50%",left:`${pct}%`,transform:"translate(-50%,-50%)",width:12,height:12,borderRadius:"50%",background:RAUSCH,opacity:cur>0?1:0,pointerEvents:"none"}}/>
+      </div>
+    </div>
+  );
+}
+
+// ── SpitCard ──────────────────────────────────────────────────────────────────
+function SpitCard({spit,onClose,following,onFollowToggle,currentUser}){
+  const[myR,setMyR]=useState([]);
+  const[reactions,setReactions]=useState(spit.reactions||{});
+  const[translated,setTranslated]=useState(null);
+  const[translating,setTranslating]=useState(false);
+  const[showFull,setShowFull]=useState(false);
+  const userLang=(navigator.language||"es").split("-")[0];
+  const spitLang=spit.lang||"es";
+  const needsTr=spitLang!==userLang;
+  const isFollowing=following&&following.includes(spit.handle);
+
+  useEffect(()=>{
+    setTranslated(null);setTranslating(false);setShowFull(false);setMyR([]);
+    if(needsTr&&spit.transcript){
+      setTranslating(true);
+      translateText(spit.transcript||spit.text||"",userLang,spitLang).then(t=>{setTranslated(t);setTranslating(false);});
+    }
+  },[spit.id]);
+
+  const react=emoji=>{
+    const has=myR.includes(emoji);
+    if(has){setMyR(r=>r.filter(e=>e!==emoji));setReactions(p=>({...p,[emoji]:Math.max(0,(p[emoji]||0)-1)}));}
+    else{if(myR.length>=MAX_REACTIONS)return;setMyR(r=>[...r,emoji]);setReactions(p=>({...p,[emoji]:(p[emoji]||0)+1}));}
+  };
+
+  const txt=needsTr?(translated||(spit.transcript||"")):( spit.transcript||spit.text||"");
+  const preview=txt.length>110?txt.slice(0,110)+"…":txt;
+  const total=Object.values(reactions).reduce((a,b)=>a+b,0);
+  const left=MAX_REACTIONS-myR.length;
+  const icon=spit.role==="Anfitrión"?"🏠":spit.role==="Huésped"?"🧳":"🗂️";
+
+  return(
+    <div style={{position:"absolute",bottom:16,left:"50%",transform:"translateX(-50%)",width:"min(460px,92vw)",background:"#fff",borderRadius:16,boxShadow:"0 8px 40px rgba(0,0,0,0.12)",zIndex:100,animation:"slideUp 0.25s ease",overflow:"hidden"}}>
+      <div style={{height:3,background:`linear-gradient(90deg,${RAUSCH},#ff7a8a)`}}/>
+      <div style={{padding:"18px 20px 20px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:40,height:40,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{icon}</div>
+            <div>
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <span style={{fontSize:14,fontWeight:700,color:"#222"}}>{spit.handle||"@anónimo"}</span>
+                {spit.handle&&spit.handle!==currentUser?.handle&&onFollowToggle&&(
+                  <button onClick={()=>onFollowToggle(spit.handle)} style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",background:isFollowing?"#fff":RAUSCH,border:`1.5px solid ${isFollowing?"#e0e0e0":RAUSCH}`,color:isFollowing?"#888":"#fff",transition:"all 0.2s"}}>
+                    {isFollowing?"Siguiendo":"+ Seguir"}
+                  </button>
+                )}
+              </div>
+              <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{spit.role}{spit.gender&&spit.gender!=="No especifico"?` · ${spit.gender}`:""}{spit.age?` · ${spit.age}a`:""} · {spit.duration}s</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{background:"#f5f5f5",border:"none",borderRadius:"50%",width:30,height:30,cursor:"pointer",fontSize:15,color:"#888",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+        </div>
+        <div style={{height:1,background:"#f5f5f5",marginBottom:12}}/>
+        <div style={{marginBottom:14}}>
+          {translating?(
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{width:15,height:15,border:`2px solid ${RAUSCH}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+              <span style={{fontSize:13,color:"#aaa"}}>Traduciendo…</span>
+            </div>
+          ):(
+            <>
+              {txt?(
+                <>
+                  <p style={{fontSize:14,color:"#333",lineHeight:1.65,margin:0}}>{showFull?txt:preview}</p>
+                  {txt.length>110&&<button onClick={()=>setShowFull(p=>!p)} style={{background:"none",border:"none",color:RAUSCH,fontSize:12,fontWeight:600,cursor:"pointer",padding:0,marginTop:6}}>{showFull?"Ver menos":"Ver todo"}</button>}
+                </>
+              ):(
+                <p style={{fontSize:13,color:"#bbb",fontStyle:"italic"}}>Audio sin transcripción</p>
+              )}
+              {needsTr&&translated&&<div style={{fontSize:11,color:"#ccc",marginTop:6}}>Traducido del {LANG_NAMES[spitLang]||spitLang}</div>}
+            </>
+          )}
+        </div>
+        <div style={{marginBottom:14}}><Player duration={spit.duration||30} audioUrl={spit.audio_url}/></div>
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+            <span style={{fontSize:11,color:"#bbb"}}>{total} reacciones</span>
+            <span style={{fontSize:11,color:left===0?RAUSCH:"#ccc"}}>{left>0?`podés agregar ${left} más`:"máximo alcanzado"}</span>
+          </div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {EMOJIS.map(e=>{
+              const a=myR.includes(e),dis=!a&&myR.length>=MAX_REACTIONS;
+              return<button key={e} onClick={()=>react(e)} style={{background:a?"#fff0f3":"#f7f7f7",border:`1.5px solid ${a?RAUSCH:"#ebebeb"}`,borderRadius:20,padding:"5px 10px",cursor:dis?"not-allowed":"pointer",fontSize:15,display:"flex",alignItems:"center",gap:5,opacity:dis?0.35:1,transition:"all 0.15s",transform:a?"scale(1.05)":"scale(1)"}}>
+                <span>{e}</span><span style={{fontSize:11,fontWeight:600,color:a?RAUSCH:"#aaa"}}>{reactions[e]||0}</span>
+              </button>;
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Record Modal ──────────────────────────────────────────────────────────────
+function RecordModal({onClose,currentUser,onSaved}){
+  const[recording,setRecording]=useState(false);
+  const[seconds,setSeconds]=useState(0);
+  const[done,setDone]=useState(false);
+  const[saving,setSaving]=useState(false);
+  const[error,setError]=useState("");
+  const tRef=useRef(null);
+  const mrRef=useRef(null);
+  const chunksRef=useRef([]);
+
+  const start=async()=>{
+    setError("");
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const mr=new MediaRecorder(stream);
+      chunksRef.current=[];
+      mr.ondataavailable=e=>chunksRef.current.push(e.data);
+      mr.start();
+      mrRef.current=mr;
+      setRecording(true);
+      tRef.current=setInterval(()=>setSeconds(s=>{if(s>=90){stop();return s;}return s+1;}),1000);
+    }catch(e){setError("No se pudo acceder al micrófono.");}
+  };
+
+  const stop=()=>{
+    setRecording(false);
+    clearInterval(tRef.current);
+    if(mrRef.current&&mrRef.current.state!=="inactive"){
+      mrRef.current.onstop=()=>{if(seconds>=3)setDone(true);};
+      mrRef.current.stop();
+      mrRef.current.stream.getTracks().forEach(t=>t.stop());
+    }else if(seconds>=3)setDone(true);
+  };
+
+  const save=async()=>{
+    setSaving(true);
+    try{
+      const blob=new Blob(chunksRef.current,{type:"audio/webm"});
+      const fn=`${(currentUser.handle||"anon").replace("@","")}_${Date.now()}.webm`;
+      const audioUrl=await dbUploadAudio(blob,fn);
+      let lat=0,lon=0;
+      try{
+        const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000}));
+        lat=pos.coords.latitude;lon=pos.coords.longitude;
+      }catch{}
+      const lang=(navigator.language||"es").split("-")[0];
+      await dbInsertSpit({handle:currentUser.handle,role:currentUser.role,duration:seconds,lang,lat,lon,audio_url:audioUrl||"",transcript:""});
+      setSaving(false);
+      onSaved&&onSaved();
+      onClose();
+    }catch(e){setError("Error al guardar. Intentá de nuevo.");setSaving(false);}
+  };
+
+  useEffect(()=>()=>clearInterval(tRef.current),[]);
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(4px)"}}>
+      <div style={{background:"#fff",borderRadius:"24px 24px 0 0",padding:"8px 28px 40px",width:"100%",maxWidth:480,boxShadow:"0 -8px 40px rgba(0,0,0,0.12)",animation:"sheetUp 0.3s ease"}}>
+        <div style={{width:40,height:4,background:"#e0e0e0",borderRadius:2,margin:"12px auto 24px"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+          <div>
+            <div style={{fontSize:20,fontWeight:700,color:"#222"}}>Escupí</div>
+            <div style={{fontSize:12,color:"#aaa",marginTop:2}}>como {currentUser.handle}</div>
+          </div>
+          <button onClick={onClose} style={{background:"#f5f5f5",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:16,color:"#888"}}>×</button>
+        </div>
+        {error&&<div style={{fontSize:12,color:RAUSCH,background:"#fff0f3",padding:"8px 12px",borderRadius:8,marginBottom:16}}>{error}</div>}
+        {!done?(
+          <div style={{textAlign:"center",paddingBottom:8}}>
+            <div style={{fontSize:60,fontWeight:700,letterSpacing:-2,color:recording?RAUSCH:"#ddd",marginBottom:4,transition:"color 0.3s"}}>
+              {String(Math.floor(seconds/60)).padStart(2,"0")}:{String(seconds%60).padStart(2,"0")}
+            </div>
+            <div style={{fontSize:12,color:"#bbb",marginBottom:28}}>mín. 3s · máx. 1:30</div>
+            <div style={{height:4,background:"#f0f0f0",borderRadius:2,marginBottom:36}}>
+              <div style={{height:"100%",background:RAUSCH,borderRadius:2,width:`${(seconds/90)*100}%`,transition:"width 1s linear"}}/>
+            </div>
+            <button onClick={recording?stop:start} style={{width:80,height:80,borderRadius:"50%",background:recording?RAUSCH:"#fff",border:recording?"none":"2px solid #e8e8e8",cursor:"pointer",fontSize:28,boxShadow:recording?`0 0 0 12px rgba(255,56,92,0.1),0 4px 20px rgba(255,56,92,0.4)`:"0 2px 12px rgba(0,0,0,0.1)",transition:"all 0.3s"}}>
+              {recording?"⏹":"🎙"}
+            </button>
+            <div style={{fontSize:13,color:"#bbb",marginTop:14}}>{recording?"Tocá para terminar":"Tocá para grabar"}</div>
+          </div>
+        ):(
+          <div style={{textAlign:"center",paddingBottom:8}}>
+            <div style={{width:64,height:64,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 16px"}}>🔥</div>
+            <div style={{fontSize:22,fontWeight:700,color:"#222",marginBottom:6}}>¡Escupido!</div>
+            <div style={{fontSize:13,color:"#aaa",marginBottom:28}}>{seconds}s · {currentUser.handle}</div>
+            <button onClick={save} disabled={saving} style={{width:"100%",padding:16,borderRadius:12,background:saving?"#ffb3c0":RAUSCH,border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:saving?"not-allowed":"pointer",boxShadow:"0 4px 16px rgba(255,56,92,0.3)"}}>
+              {saving?"Guardando...":"Publicar en el globo 🌍"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+function App(){
+  const[user,setUser]=useState(null);
+  const[checking,setChecking]=useState(true);
+  const[spits,setSpits]=useState([]);
+  const[activeSpit,setActiveSpit]=useState(null);
+  const[showRecord,setShowRecord]=useState(false);
+  const[following,setFollowing]=useState([]);
+
+  // Restore session
+  useEffect(()=>{
+    dbGetSession().then(profile=>{
+      if(profile)setUser({email:profile.email,handle:profile.handle,role:profile.role});
+      setChecking(false);
+    });
+    const{data:{subscription}}=sb.auth.onAuthStateChange((event)=>{
+      if(event==="SIGNED_OUT")setUser(null);
+    });
+    return()=>subscription.unsubscribe();
+  },[]);
+
+  // Load spits when logged in
+  useEffect(()=>{
+    if(!user)return;
+    dbGetSpits().then(data=>{
+      // Place on globe: use lat/lon to compute x/y percentage on SVG globe
+      const positioned=data.map(s=>{
+        const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
+        const y=s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20;
+        return{...s,x,y};
+      });
+      setSpits(positioned);
+    });
+    // Realtime
+    const ch=sb.channel("spits").on("postgres_changes",{event:"INSERT",schema:"public",table:"spits"},p=>{
+      const s=p.new;
+      const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
+      const y=s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20;
+      setSpits(prev=>[{...s,x,y,reactions:{}},...prev]);
+    }).subscribe();
+    return()=>sb.removeChannel(ch);
+  },[user]);
+
+  const logout=async()=>{await sb.auth.signOut();setUser(null);};
+  const toggleFollow=h=>setFollowing(p=>p.includes(h)?p.filter(x=>x!==h):[...p,h]);
+
+  if(checking)return(
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:28,fontWeight:800}}><span style={{color:RAUSCH}}>air</span>spit</div>
+        <div style={{width:32,height:32,border:`3px solid ${RAUSCH}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"16px auto 0"}}/>
+      </div>
+    </div>
+  );
+
+  if(!user)return <AuthScreen onLogin={setUser}/>;
+
+  return(
+    <div style={{background:"#f7f7f7",minHeight:"100vh",display:"flex",flexDirection:"column",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:"#222"}}>
+      <header style={{background:"#fff",padding:"0 24px",height:64,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
+        <div style={{fontSize:20,fontWeight:800,letterSpacing:-0.5}}>
+          <span style={{color:RAUSCH}}>air</span>spit
+        </div>
+        <div style={{display:"flex",gap:12,alignItems:"center"}}>
+          <span style={{fontSize:12,color:"#aaa"}}><span style={{color:RAUSCH}}>●</span> {spits.length} spits</span>
+          <span style={{fontSize:12,color:"#888",background:"#f5f5f5",padding:"4px 10px",borderRadius:20}}>{user.handle}</span>
+          <button onClick={logout} style={{background:"none",border:"none",fontSize:12,color:"#bbb",cursor:"pointer"}}>Salir</button>
+          <button onClick={()=>setShowRecord(true)} style={{background:RAUSCH,border:"none",color:"#fff",padding:"10px 18px",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600,boxShadow:`0 2px 8px rgba(255,56,92,0.3)`}}>+ Escupir</button>
+        </div>
+      </header>
+      <main style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 0 160px",position:"relative"}}>
+        <div style={{background:"#fff",borderRadius:20,boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:24}}>
+          <div style={{width:"min(420px,75vw)",height:"min(420px,75vw)",position:"relative"}}>
+            <GlobeSVG spits={spits} onSpitClick={setActiveSpit} activeSpit={activeSpit}/>
+          </div>
+        </div>
+        <p style={{fontSize:12,color:"#bbb",marginTop:14}}>Tocá un punto para escuchar</p>
+        {activeSpit&&<SpitCard spit={activeSpit} onClose={()=>setActiveSpit(null)} following={following} onFollowToggle={toggleFollow} currentUser={user}/>}
+      </main>
+      {showRecord&&<RecordModal onClose={()=>setShowRecord(false)} currentUser={user} onSaved={()=>dbGetSpits().then(data=>{
+        const positioned=data.map(s=>({...s,x:s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20,y:s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20}));
+        setSpits(positioned);
+      })}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
