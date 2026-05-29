@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#111828;overflow:hidden}
@@ -34,6 +35,62 @@ const SPEEDS=[1,1.5,2];
 const LANG_NAMES={es:"español",en:"inglés",fr:"francés",ja:"japonés",de:"alemán",pt:"portugués",it:"italiano"};
 const ROLES=["Anfitrión","Huésped","Property Manager"];
 const GENDERS=["M","F","No especifico"];
+
+// ── Supabase ──────────────────────────────────────────────────────────────────
+const SUPA_URL="https://rmyyfhmnjbhclbytmscm.supabase.co";
+const SUPA_KEY="sb_publishable_lYe6NtQadIIlIQ9CzuClFA_tDMo1Bhk";
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+// ── Supabase helpers ──────────────────────────────────────────────────────────
+async function dbRegister(email,handle,role){
+  const{data,error}=await sb.from("users").insert([{email,handle,role}]).select().single();
+  if(error&&error.code==="23505") return{error:"El usuario o email ya existe."};
+  if(error) return{error:error.message};
+  return{data};
+}
+async function dbLogin(email){
+  const{data,error}=await sb.from("users").select("*").eq("email",email).single();
+  if(error) return{error:"Email no encontrado."};
+  return{data};
+}
+async function dbGetSpits(){
+  const{data,error}=await sb.from("spits").select("*").order("created_at",{ascending:false});
+  return data||[];
+}
+async function dbInsertSpit(spit){
+  const{data,error}=await sb.from("spits").insert([spit]).select().single();
+  return{data,error};
+}
+async function dbGetReactions(spitId){
+  const{data}=await sb.from("reactions").select("emoji").eq("spit_id",spitId);
+  const counts={};
+  (data||[]).forEach(r=>{counts[r.emoji]=(counts[r.emoji]||0)+1;});
+  return counts;
+}
+async function dbAddReaction(spitId,handle,emoji){
+  await sb.from("reactions").insert([{spit_id:spitId,handle,emoji}]);
+}
+async function dbRemoveReaction(spitId,handle,emoji){
+  await sb.from("reactions").delete().eq("spit_id",spitId).eq("handle",handle).eq("emoji",emoji);
+}
+async function dbUploadAudio(blob,filename){
+  const{data,error}=await sb.storage.from("audios").upload(filename,blob,{contentType:"audio/webm",upsert:true});
+  if(error) return null;
+  const{data:urlData}=sb.storage.from("audios").getPublicUrl(filename);
+  return urlData.publicUrl;
+}
+
+// Detect user location
+async function getUserLocation(){
+  return new Promise(resolve=>{
+    if(!navigator.geolocation){resolve({lat:0,lon:0});return;}
+    navigator.geolocation.getCurrentPosition(
+      p=>resolve({lat:p.coords.latitude,lon:p.coords.longitude}),
+      ()=>resolve({lat:0,lon:0}),
+      {timeout:5000}
+    );
+  });
+}
 
 const MOCK_SPITS=[
   {id:1,lat:-34.6037,lon:-58.3816,handle:"@nochera_bsas",role:"Anfitrión",age:34,gender:"M",duration:67,lang:"es",
@@ -107,10 +164,17 @@ function AuthScreen({onLogin}){
       if(clean.length<3){setError("El usuario debe tener al menos 3 caracteres.");return;}
     }
     setLoading(true);
-    await new Promise(r=>setTimeout(r,700));
+    if(mode==="register"){
+      const h="@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,"");
+      const{data,error:err}=await dbRegister(email,h,role);
+      if(err){setError(err);setLoading(false);return;}
+      onLogin({email,handle:h,role});
+    } else {
+      const{data,error:err}=await dbLogin(email);
+      if(err){setError(err);setLoading(false);return;}
+      onLogin({email:data.email,handle:data.handle,role:data.role});
+    }
     setLoading(false);
-    const h=mode==="register"?"@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,""):"@usuario_demo";
-    onLogin({email,handle:h,role:role||"Anfitrión"});
   };
 
   return(
@@ -311,10 +375,64 @@ function RecordModal({onClose,currentUser}){
   const[recording,setRecording]=useState(false);
   const[seconds,setSeconds]=useState(0);
   const[done,setDone]=useState(false);
+  const[saving,setSaving]=useState(false);
+  const[error,setError]=useState("");
   const tRef=useRef(null);
-  const start=()=>{setRecording(true);tRef.current=setInterval(()=>setSeconds(s=>{if(s>=90){stop();return s;}return s+1;}),1000);};
-  const stop=()=>{setRecording(false);clearInterval(tRef.current);if(seconds>=3)setDone(true);};
-  useEffect(()=>()=>clearInterval(tRef.current),[]);
+  const mediaRef=useRef(null);
+  const chunksRef=useRef([]);
+
+  const start=async()=>{
+    setError("");
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const mr=new MediaRecorder(stream);
+      chunksRef.current=[];
+      mr.ondataavailable=e=>chunksRef.current.push(e.data);
+      mr.start();
+      mediaRef.current=mr;
+      setRecording(true);
+      tRef.current=setInterval(()=>setSeconds(s=>{
+        if(s>=90){stop();return s;}return s+1;
+      }),1000);
+    }catch(e){setError("No se pudo acceder al micrófono.");}
+  };
+
+  const stop=()=>{
+    setRecording(false);
+    clearInterval(tRef.current);
+    if(mediaRef.current&&mediaRef.current.state!=="inactive"){
+      mediaRef.current.stop();
+      mediaRef.current.stream.getTracks().forEach(t=>t.stop());
+    }
+    if(seconds>=3)setDone(true);
+  };
+
+  const save=async()=>{
+    setSaving(true);
+    setError("");
+    try{
+      const blob=new Blob(chunksRef.current,{type:"audio/webm"});
+      const filename=`${currentUser.handle}_${Date.now()}.webm`;
+      const audioUrl=await dbUploadAudio(blob,filename);
+      const loc=await getUserLocation();
+      const lang=(navigator.language||"es").split("-")[0];
+      const{error:err}=await dbInsertSpit({
+        handle:currentUser.handle,
+        role:currentUser.role,
+        duration:seconds,
+        lang,
+        lat:loc.lat||(-34.6+Math.random()*0.1),
+        lon:loc.lon||(-58.4+Math.random()*0.1),
+        audio_url:audioUrl||"",
+        transcript:"",
+      });
+      if(err){setError("Error al guardar. Intentá de nuevo.");setSaving(false);return;}
+      setSaving(false);
+      onClose();
+    }catch(e){setError("Error al guardar.");setSaving(false);}
+  };
+
+  useEffect(()=>()=>{clearInterval(tRef.current);},[]);
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:2000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(4px)"}}>
@@ -327,6 +445,7 @@ function RecordModal({onClose,currentUser}){
           </div>
           <button onClick={onClose} style={{background:"#f5f5f5",border:"none",borderRadius:"50%",width:32,height:32,cursor:"pointer",fontSize:16,color:"#888"}}>×</button>
         </div>
+        {error&&<div style={{fontSize:12,color:RAUSCH,background:"#fff0f3",padding:"8px 12px",borderRadius:8,marginBottom:16}}>{error}</div>}
         {!done?(
           <div style={{textAlign:"center",paddingBottom:8}}>
             <div style={{fontSize:60,fontWeight:700,letterSpacing:-2,color:recording?RAUSCH:"#ddd",marginBottom:4,transition:"color 0.3s"}}>
@@ -346,7 +465,9 @@ function RecordModal({onClose,currentUser}){
             <div style={{width:64,height:64,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,margin:"0 auto 16px"}}>🔥</div>
             <div style={{fontSize:22,fontWeight:700,color:"#222",marginBottom:6}}>¡Escupido!</div>
             <div style={{fontSize:13,color:"#aaa",marginBottom:28}}>{seconds}s · {currentUser.handle} · {currentUser.role}</div>
-            <button onClick={onClose} style={{width:"100%",padding:16,borderRadius:12,background:RAUSCH,border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 16px rgba(255,56,92,0.3)"}}>Ver en el mapa</button>
+            <button onClick={save} disabled={saving} style={{width:"100%",padding:16,borderRadius:12,background:saving?"#ffb3c0":RAUSCH,border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:saving?"not-allowed":"pointer",boxShadow:"0 4px 16px rgba(255,56,92,0.3)"}}>
+              {saving?"Guardando...":"Publicar en el mapa 🗺️"}
+            </button>
           </div>
         )}
       </div>
@@ -531,6 +652,8 @@ function MapView({currentUser,onLogout}){
   const[showRecord,setShowRecord]=useState(false);
   const[following,setFollowing]=useState([]);
   const[showFollowingOnly,setShowFollowingOnly]=useState(false);
+  const[spits,setSpits]=useState([]);
+  const[loading,setLoading]=useState(true);
 
   const hour=new Date().getHours();
   const isDay=hour>=6&&hour<20;
@@ -544,7 +667,24 @@ function MapView({currentUser,onLogout}){
   const counterText=isDay?"rgba(0,0,0,0.4)":"rgba(255,255,255,0.5)";
   const counterBorder=isDay?"rgba(0,0,0,0.06)":"rgba(255,255,255,0.06)";
 
-  const visibleSpits=showFollowingOnly?MOCK_SPITS.filter(s=>following.includes(s.handle)):MOCK_SPITS;
+  // Load spits from Supabase
+  const loadSpits=async()=>{
+    const data=await dbGetSpits();
+    setSpits(data.map(s=>({...s,reactions:{}})));
+    setLoading(false);
+  };
+  useEffect(()=>{loadSpits();},[]);
+
+  // Realtime subscription
+  useEffect(()=>{
+    const channel=sb.channel("spits-changes")
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"spits"},payload=>{
+        setSpits(prev=>[{...payload.new,reactions:{}}, ...prev]);
+      }).subscribe();
+    return()=>sb.removeChannel(channel);
+  },[]);
+
+  const visibleSpits=showFollowingOnly?spits.filter(s=>following.includes(s.handle)):spits;
   const toggleFollow=h=>setFollowing(p=>p.includes(h)?p.filter(x=>x!==h):[...p,h]);
 
   return(
