@@ -529,10 +529,16 @@ function RecordModal({onClose,currentUser,onSaved}){
     setError("");
     try{
       const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-      const mr=new MediaRecorder(stream);
+      // Use format compatible with all browsers
+      const mimeType=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ?"audio/webm;codecs=opus"
+        :MediaRecorder.isTypeSupported("audio/mp4")
+        ?"audio/mp4"
+        :"audio/webm";
+      const mr=new MediaRecorder(stream,{mimeType});
       chunksRef.current=[];
-      mr.ondataavailable=e=>chunksRef.current.push(e.data);
-      mr.start();
+      mr.ondataavailable=e=>{if(e.data&&e.data.size>0)chunksRef.current.push(e.data);};
+      mr.start(1000); // collect data every 1 second
       mrRef.current=mr;
       setRecording(true);
       tRef.current=setInterval(()=>setSeconds(s=>{if(s>=90){stop();return s;}return s+1;}),1000);
@@ -543,7 +549,11 @@ function RecordModal({onClose,currentUser,onSaved}){
     setRecording(false);
     clearInterval(tRef.current);
     if(mrRef.current&&mrRef.current.state!=="inactive"){
-      mrRef.current.onstop=()=>{if(seconds>=3)setDone(true);};
+      mrRef.current.onstop=()=>{
+        if(seconds>=3)setDone(true);
+      };
+      // Request final data chunk before stopping
+      mrRef.current.requestData();
       mrRef.current.stop();
       mrRef.current.stream.getTracks().forEach(t=>t.stop());
     }else if(seconds>=3)setDone(true);
@@ -625,8 +635,11 @@ function RecordModal({onClose,currentUser,onSaved}){
     stopPreview();
     setSaving(true);
     try{
-      const blob=await applyEffectAndGetBlob();
-      const ext=effect==="normal"?"webm":"wav";
+      const mimeType=chunksRef.current[0]?.type||"audio/webm";
+      const ext=mimeType.includes("mp4")?"mp4":"webm";
+      const blob=effect==="normal"
+        ?new Blob(chunksRef.current,{type:mimeType})
+        :await applyEffectAndGetBlob();
       const fn=`${(currentUser.handle||"anon").replace("@","")}_${Date.now()}.${ext}`;
       const audioUrl=await dbUploadAudio(blob,fn);
       let lat=0,lon=0;
