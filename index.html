@@ -92,6 +92,7 @@ function AuthScreen({onLogin}){
   const[role,setRole]=useState("");
   const[error,setError]=useState("");
   const[loading,setLoading]=useState(false);
+  const[showPass,setShowPass]=useState(false);
   const iStyle={width:"100%",padding:"12px 14px",background:"#f7f7f7",border:"1.5px solid #ebebeb",borderRadius:10,fontSize:14,color:"#222",outline:"none"};
 
   const submit=async()=>{
@@ -142,7 +143,12 @@ function AuthScreen({onLogin}){
               ))}
             </div>
           </>}
-          <input type="password" placeholder="Contraseña" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} style={iStyle}/>
+          <div style={{position:"relative"}}>
+            <input type={showPass?"text":"password"} placeholder="Contraseña" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} style={{...iStyle,paddingRight:44}}/>
+            <button onClick={()=>setShowPass(p=>!p)} style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#aaa",padding:0}}>
+              {showPass?"🙈":"👁️"}
+            </button>
+          </div>
           {error&&<div style={{fontSize:12,color:RAUSCH,background:"#fff0f3",padding:"8px 12px",borderRadius:8}}>{error}</div>}
           <button onClick={submit} disabled={loading} style={{width:"100%",padding:16,borderRadius:10,background:loading?"#ffb3c0":RAUSCH,border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"not-allowed":"pointer",boxShadow:"0 4px 16px rgba(255,56,92,0.3)"}}>
             {loading?"...":mode==="login"?"Entrar":"Crear cuenta"}
@@ -155,9 +161,9 @@ function AuthScreen({onLogin}){
 }
 
 // ── Globe SVG ─────────────────────────────────────────────────────────────────
+// ── World Map SVG ─────────────────────────────────────────────────────────────
 function GlobeSVG({spits,onSpitClick,activeSpit}){
-  // Group spits that are within 4% of each other on the globe
-  const CLUSTER_DIST=4;
+  const CLUSTER_DIST=3;
   const used=new Set();
   const clusters=[];
   spits.forEach((s,i)=>{
@@ -166,7 +172,7 @@ function GlobeSVG({spits,onSpitClick,activeSpit}){
     used.add(i);
     spits.forEach((s2,j)=>{
       if(used.has(j))return;
-      const dx=(s.x||50)-(s2.x||50), dy=(s.y||50)-(s2.y||50);
+      const dx=(s.x||50)-(s2.x||50),dy=(s.y||50)-(s2.y||50);
       if(Math.sqrt(dx*dx+dy*dy)<CLUSTER_DIST){group.push(s2);used.add(j);}
     });
     clusters.push(group);
@@ -174,41 +180,60 @@ function GlobeSVG({spits,onSpitClick,activeSpit}){
 
   return(
     <div style={{position:"relative",width:"100%",height:"100%"}}>
-      <svg viewBox="0 0 100 100" style={{width:"100%",height:"100%",position:"absolute"}}>
-        <defs>
-          <radialGradient id="gG" cx="38%" cy="35%" r="60%">
-            <stop offset="0%" stopColor="#e8edf5"/>
-            <stop offset="60%" stopColor="#d0d8e8"/>
-            <stop offset="100%" stopColor="#b8c4d8"/>
-          </radialGradient>
-          <radialGradient id="gS" cx="35%" cy="30%" r="40%">
-            <stop offset="0%" stopColor="#fff" stopOpacity="0.5"/>
-            <stop offset="100%" stopColor="#fff" stopOpacity="0"/>
-          </radialGradient>
-          <filter id="gSh"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#b0bcd0" floodOpacity="0.4"/></filter>
-          <clipPath id="gC"><circle cx="50" cy="50" r="42"/></clipPath>
-        </defs>
-        <ellipse cx="52" cy="96" rx="30" ry="4" fill="#c8d0e0" fillOpacity="0.5"/>
-        <circle cx="50" cy="50" r="42" fill="url(#gG)" filter="url(#gSh)"/>
-        {[20,35,50,65,80].map(y=>(
-          <ellipse key={y} cx="50" cy={y} rx={Math.sqrt(42*42-(y-50)*(y-50))} ry="2" fill="none" stroke="#a0b0c8" strokeWidth="0.2" strokeOpacity="0.4" clipPath="url(#gC)"/>
-        ))}
-        {[0,30,60,90,120,150].map(a=>(
-          <ellipse key={a} cx="50" cy="50" rx={Math.abs(Math.cos(a*Math.PI/180))*42} ry="42" fill="none" stroke="#a0b0c8" strokeWidth="0.2" strokeOpacity="0.4" clipPath="url(#gC)"/>
-        ))}
-        <g clipPath="url(#gC)" fill="#c8d4e8" fillOpacity="0.7">
-          <ellipse cx="28" cy="40" rx="9" ry="12"/>
-          <ellipse cx="52" cy="35" rx="14" ry="9"/>
-          <ellipse cx="60" cy="52" rx="8" ry="10"/>
-          <ellipse cx="72" cy="38" rx="6" ry="7"/>
-          <ellipse cx="35" cy="62" rx="5" ry="4"/>
-          <ellipse cx="78" cy="58" rx="4" ry="6"/>
+      <svg viewBox="0 0 1000 500" style={{width:"100%",height:"100%",position:"absolute"}} xmlns="http://www.w3.org/2000/svg">
+        {/* Background */}
+        <rect width="1000" height="500" fill="#f8f9fb" rx="12"/>
+
+        {/* Continents - simplified Natural Earth paths */}
+        <g fill="#e2e6ed" stroke="#fff" strokeWidth="1.5">
+          {/* North America */}
+          <path d="M120,60 L180,55 L220,65 L250,80 L260,110 L240,130 L230,160 L210,180 L195,210 L180,230 L165,250 L150,260 L135,255 L120,240 L105,220 L95,195 L90,170 L95,145 L105,120 L110,95 Z"/>
+          {/* Greenland */}
+          <path d="M195,30 L225,25 L240,35 L235,55 L215,60 L200,50 Z"/>
+          {/* Central America */}
+          <path d="M165,250 L175,260 L170,275 L160,280 L155,270 L158,258 Z"/>
+          {/* South America */}
+          <path d="M175,270 L200,265 L225,275 L240,300 L245,335 L240,370 L225,400 L205,420 L185,415 L168,395 L160,365 L158,330 L162,300 L170,280 Z"/>
+          {/* Europe */}
+          <path d="M450,60 L480,55 L510,60 L525,75 L520,95 L505,105 L490,110 L475,105 L460,95 L448,80 Z"/>
+          {/* UK */}
+          <path d="M430,65 L442,62 L445,75 L438,82 L428,78 Z"/>
+          {/* Scandinavia */}
+          <path d="M460,40 L480,35 L495,45 L490,65 L475,70 L462,62 Z"/>
+          {/* Africa */}
+          <path d="M450,115 L490,110 L520,120 L535,145 L540,175 L538,210 L530,245 L515,275 L495,295 L475,300 L455,290 L440,265 L432,235 L430,200 L435,165 L440,135 Z"/>
+          {/* Asia */}
+          <path d="M525,45 L580,40 L640,38 L700,42 L750,50 L790,60 L820,75 L830,95 L820,115 L800,130 L775,140 L745,145 L715,140 L685,135 L655,130 L625,125 L600,120 L575,115 L555,110 L538,100 L525,85 L520,65 Z"/>
+          {/* Indian subcontinent */}
+          <path d="M620,130 L645,125 L660,140 L658,165 L645,185 L628,190 L615,175 L612,155 Z"/>
+          {/* Southeast Asia */}
+          <path d="M710,140 L740,135 L760,145 L765,165 L750,180 L730,182 L715,170 L708,155 Z"/>
+          {/* Japan */}
+          <path d="M790,80 L805,75 L815,85 L810,100 L795,103 L785,93 Z"/>
+          {/* Australia */}
+          <path d="M730,310 L785,305 L830,315 L855,335 L858,365 L845,390 L820,405 L790,408 L760,400 L738,380 L725,355 L723,330 Z"/>
+          {/* New Zealand */}
+          <path d="M870,385 L882,380 L888,395 L880,408 L868,405 Z"/>
+          {/* Middle East */}
+          <path d="M538,100 L570,95 L590,105 L595,125 L580,135 L558,132 L540,120 Z"/>
+          {/* Madagascar */}
+          <path d="M548,255 L558,250 L565,265 L560,282 L548,280 Z"/>
+          {/* Iceland */}
+          <path d="M400,45 L418,42 L425,52 L415,60 L400,58 Z"/>
         </g>
-        <circle cx="50" cy="50" r="42" fill="url(#gS)" clipPath="url(#gC)"/>
-        <circle cx="50" cy="50" r="42" fill="none" stroke="#a8b8cc" strokeWidth="0.3"/>
+
+        {/* Subtle grid lines */}
+        <g stroke="#dde1e8" strokeWidth="0.5" opacity="0.5">
+          <line x1="0" y1="250" x2="1000" y2="250"/>
+          <line x1="250" y1="0" x2="250" y2="500"/>
+          <line x1="500" y1="0" x2="500" y2="500"/>
+          <line x1="750" y1="0" x2="750" y2="500"/>
+        </g>
       </svg>
 
+      {/* Dots */}
       {clusters.map((group,i)=>{
+        // Convert x/y (globe %) to map coordinates
         const cx=group.reduce((a,s)=>a+(s.x||50),0)/group.length;
         const cy=group.reduce((a,s)=>a+(s.y||50),0)/group.length;
         const isCluster=group.length>1;
@@ -217,11 +242,11 @@ function GlobeSVG({spits,onSpitClick,activeSpit}){
           <button key={i} onClick={()=>onSpitClick(group)}
             style={{position:"absolute",left:`${cx}%`,top:`${cy}%`,transform:"translate(-50%,-50%)",background:"none",border:"none",cursor:"pointer",padding:0,zIndex:10}}>
             {isCluster?(
-              <div style={{width:28,height:28,borderRadius:"50%",background:RAUSCH,border:"2.5px solid #fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(255,56,92,0.5)",fontSize:11,fontWeight:700,color:"#fff",animation:"pulse 2.5s ease-in-out infinite"}}>
+              <div style={{width:28,height:28,borderRadius:"50%",background:RAUSCH,border:"2.5px solid #fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 12px rgba(255,56,92,0.45)",fontSize:11,fontWeight:700,color:"#fff",animation:"pulse 2.5s ease-in-out infinite"}}>
                 {group.length}
               </div>
             ):(
-              <div style={{width:isActive?16:10,height:isActive?16:10,borderRadius:"50%",background:RAUSCH,boxShadow:isActive?`0 0 0 4px rgba(255,56,92,0.25),0 0 16px rgba(255,56,92,0.5)`:`0 0 0 2px rgba(255,56,92,0.15),0 2px 6px rgba(255,56,92,0.35)`,transition:"all 0.3s ease",animation:"pulse 2.5s ease-in-out infinite"}}/>
+              <div style={{width:isActive?16:11,height:isActive?16:11,borderRadius:"50%",background:RAUSCH,boxShadow:isActive?`0 0 0 4px rgba(255,56,92,0.2),0 0 16px rgba(255,56,92,0.5)`:`0 0 0 3px rgba(255,56,92,0.15),0 2px 8px rgba(255,56,92,0.4)`,transition:"all 0.3s ease",animation:"pulse 2.5s ease-in-out infinite"}}/>
             )}
           </button>
         );
@@ -713,8 +738,8 @@ function App(){
         </div>
       </header>
       <main style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 0 160px",position:"relative"}}>
-        <div style={{background:"#fff",borderRadius:20,boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:24}}>
-          <div style={{width:"min(420px,75vw)",height:"min(420px,75vw)",position:"relative"}}>
+        <div style={{background:"#fff",borderRadius:20,boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:20,width:"min(760px,95vw)"}}>
+          <div style={{width:"min(700px,90vw)",height:"min(360px,45vw)",position:"relative"}}>
             <GlobeSVG spits={spits} onSpitClick={handleSpitClick} activeSpit={activeSpit}/>
           </div>
         </div>
