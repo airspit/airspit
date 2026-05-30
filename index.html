@@ -730,9 +730,151 @@ function RecordModal({onClose,currentUser,onSaved}){
 }
 
 // ── Main App ──────────────────────────────────────────────────────────────────
+// ── Landing ───────────────────────────────────────────────────────────────────
+function Landing({onEnter,showAuth,onLogin}){
+  const[scrolled,setScrolled]=useState(false);
+  useEffect(()=>{
+    const onScroll=()=>setScrolled(window.scrollY>40);
+    window.addEventListener("scroll",onScroll);
+    return()=>window.removeEventListener("scroll",onScroll);
+  },[]);
+
+  if(showAuth)return <AuthScreen onLogin={onLogin}/>;
+
+  return(
+    <div style={{minHeight:"100vh",background:"#fff",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:"#222",overflowX:"hidden"}}>
+
+      {/* Nav */}
+      <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,background:scrolled?"rgba(255,255,255,0.95)":"transparent",backdropFilter:scrolled?"blur(12px)":"none",borderBottom:scrolled?"1px solid #f0f0f0":"none",padding:"0 24px",height:60,display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all 0.3s"}}>
+        <div style={{fontSize:20,fontWeight:800,letterSpacing:-0.5}}>
+          <span style={{color:RAUSCH}}>air</span>spit
+        </div>
+        <button onClick={onEnter} style={{background:RAUSCH,border:"none",color:"#fff",padding:"9px 20px",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600,boxShadow:"0 2px 8px rgba(255,56,92,0.3)"}}>
+          Entrar
+        </button>
+      </nav>
+
+      {/* Hero */}
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 24px 60px",textAlign:"center",background:"linear-gradient(180deg,#fff 0%,#fff5f7 100%)"}}>
+
+        {/* Badge */}
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#fff0f3",border:"1px solid #ffd0da",borderRadius:20,padding:"6px 14px",fontSize:12,fontWeight:600,color:RAUSCH,marginBottom:28}}>
+          <span style={{fontSize:8}}>●</span> Hospitalidad sin filtros
+        </div>
+
+        {/* Title */}
+        <h1 style={{fontSize:"clamp(36px,7vw,72px)",fontWeight:800,letterSpacing:-2,lineHeight:1.1,marginBottom:20,maxWidth:700}}>
+          No te lo guardes más.<br/>
+          <span style={{color:RAUSCH}}>Escupí</span> lo que sentís.
+        </h1>
+
+        {/* Subtitle */}
+        <p style={{fontSize:"clamp(16px,2.5vw,20px)",color:"#666",lineHeight:1.6,maxWidth:520,marginBottom:16}}>
+          El lugar donde anfitriones y huéspedes dicen lo que realmente piensan. En audio. Sin filtros. Anónimo.
+        </p>
+        <p style={{fontSize:15,color:"#aaa",marginBottom:40,fontWeight:500}}>
+          Hasta 90 segundos para decir cómo te sentís.
+        </p>
+
+        {/* CTA */}
+        <div style={{display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center",marginBottom:60}}>
+          <button onClick={onEnter} style={{background:RAUSCH,border:"none",color:"#fff",padding:"16px 32px",borderRadius:12,cursor:"pointer",fontSize:16,fontWeight:700,boxShadow:"0 4px 20px rgba(255,56,92,0.4)",transition:"transform 0.15s"}}
+            onMouseOver={e=>e.currentTarget.style.transform="scale(1.03)"}
+            onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>
+            Empezar a escupir 🎙
+          </button>
+          <button onClick={onEnter} style={{background:"#f7f7f7",border:"1.5px solid #e8e8e8",color:"#555",padding:"16px 32px",borderRadius:12,cursor:"pointer",fontSize:16,fontWeight:600}}>
+            Escuchar spits →
+          </button>
+        </div>
+
+        {/* Preview map */}
+        <div style={{width:"min(700px,92vw)",background:"#fff",borderRadius:20,boxShadow:"0 8px 40px rgba(0,0,0,0.08)",padding:16,overflow:"hidden",position:"relative"}}>
+          <div style={{height:160,background:"linear-gradient(135deg,#f0f4f8 0%,#dce8f5 100%)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",position:"relative",overflow:"hidden"}}>
+            {/* Fake map dots */}
+            {[
+              {left:"28%",top:"55%"},{left:"52%",top:"38%"},{left:"65%",top:"52%"},
+              {left:"72%",top:"32%"},{left:"18%",top:"60%"},{left:"80%",top:"48%"},
+            ].map((pos,i)=>(
+              <div key={i} style={{position:"absolute",...pos,width:10,height:10,borderRadius:"50%",background:RAUSCH,boxShadow:"0 0 0 3px rgba(255,56,92,0.2)",animation:`pulse ${2+i*0.3}s ease-in-out infinite`}}/>
+            ))}
+            <div style={{fontSize:13,color:"#aaa",letterSpacing:1}}>🌍 Spits en todo el mundo</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Features */}
+      <div style={{padding:"80px 24px",maxWidth:900,margin:"0 auto"}}>
+        <h2 style={{fontSize:"clamp(24px,4vw,40px)",fontWeight:800,letterSpacing:-1,textAlign:"center",marginBottom:12}}>
+          ¿Por qué <span style={{color:RAUSCH}}>escupir</span>?
+        </h2>
+        <p style={{textAlign:"center",color:"#aaa",fontSize:16,marginBottom:56}}>
+          Porque hay cosas que no podés decir en Airbnb, Booking, ni en la cena con amigos.
+        </p>
+
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:20}}>
+          {[
+            {emoji:"🎙",title:"Audio puro",desc:"Tu voz. Sin texto que se pueda malinterpretar. Sin edición. Solo lo que sentís en ese momento."},
+            {emoji:"👤",title:"Anónimo de verdad",desc:"Usá un nickname. Nadie sabe quién sos. Hasta podés cambiar tu voz con el efecto ardilla o sombra."},
+            {emoji:"🌍",title:"Global",desc:"Escuchá lo que viven otras personas en su ciudad. Anfitriones en Tokio, huéspedes en París."},
+            {emoji:"⏱",title:"90 segundos",desc:"Tiempo suficiente para decir lo que necesitás. Sin rodeos. Sin discursos. Solo lo esencial."},
+          ].map((f,i)=>(
+            <div key={i} style={{background:"#fafafa",borderRadius:16,padding:24,border:"1px solid #f0f0f0"}}>
+              <div style={{fontSize:32,marginBottom:12}}>{f.emoji}</div>
+              <div style={{fontSize:16,fontWeight:700,color:"#222",marginBottom:8}}>{f.title}</div>
+              <div style={{fontSize:14,color:"#888",lineHeight:1.6}}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Who is it for */}
+      <div style={{background:"#fafafa",padding:"80px 24px"}}>
+        <div style={{maxWidth:700,margin:"0 auto",textAlign:"center"}}>
+          <h2 style={{fontSize:"clamp(22px,4vw,36px)",fontWeight:800,letterSpacing:-1,marginBottom:40}}>
+            Para vos si alguna vez...
+          </h2>
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            {[
+              "😤 Tuviste un huésped que canceló el día del check-in",
+              "🙄 Llegaste a un depto que no era como las fotos",
+              "😰 Tuviste que sonreír cuando querías explotar",
+              "🤯 Administrás propiedades y nadie entiende lo que es eso",
+              "😳 Dejaste una reseña de 5 estrellas por miedo a la respuesta",
+            ].map((t,i)=>(
+              <div key={i} style={{background:"#fff",borderRadius:12,padding:"16px 20px",fontSize:15,color:"#333",textAlign:"left",border:"1px solid #f0f0f0",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}}>
+                {t}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Final CTA */}
+      <div style={{padding:"80px 24px",textAlign:"center",background:"linear-gradient(180deg,#fff5f7 0%,#fff 100%)"}}>
+        <h2 style={{fontSize:"clamp(24px,5vw,48px)",fontWeight:800,letterSpacing:-1.5,marginBottom:16}}>
+          ¿Listo para escupir?
+        </h2>
+        <p style={{color:"#aaa",fontSize:16,marginBottom:36}}>Es gratis. Es anónimo. Son 90 segundos.</p>
+        <button onClick={onEnter} style={{background:RAUSCH,border:"none",color:"#fff",padding:"18px 40px",borderRadius:12,cursor:"pointer",fontSize:18,fontWeight:700,boxShadow:"0 4px 24px rgba(255,56,92,0.4)",transition:"transform 0.15s"}}
+          onMouseOver={e=>e.currentTarget.style.transform="scale(1.03)"}
+          onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>
+          Empezar ahora 🔥
+        </button>
+      </div>
+
+      {/* Footer */}
+      <div style={{borderTop:"1px solid #f0f0f0",padding:"24px",textAlign:"center",color:"#ccc",fontSize:12}}>
+        <span style={{fontWeight:700,color:"#aaa"}}><span style={{color:RAUSCH}}>air</span>spit</span> · hospitalidad sin filtros · airspit.com
+      </div>
+    </div>
+  );
+}
+
 function App(){
   const[user,setUser]=useState(null);
   const[checking,setChecking]=useState(true);
+  const[showAuth,setShowAuth]=useState(false);
   const[spits,setSpits]=useState([]);
   const[activeSpit,setActiveSpit]=useState(null);
   const[clusterList,setClusterList]=useState(null);
@@ -809,7 +951,7 @@ function App(){
     </div>
   );
 
-  if(!user)return <AuthScreen onLogin={setUser}/>;
+  if(!user)return <Landing onEnter={()=>setShowAuth(true)} showAuth={showAuth} onLogin={setUser}/>;
 
   // ── Profile Screen ──────────────────────────────────────────────────────────
   if(showProfile)return(
