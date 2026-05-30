@@ -957,30 +957,6 @@ function App(){
   );
 }
 
-  // Load spits when logged in
-  useEffect(()=>{
-    if(!user)return;
-    dbGetSpits().then(data=>{
-      // Place on globe: use lat/lon to compute x/y percentage on SVG globe
-      const positioned=data.map(s=>{
-        const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
-        const y=s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20;
-        return{...s,x,y};
-      });
-      setSpits(positioned);
-    });
-    // Realtime
-    const ch=sb.channel("spits").on("postgres_changes",{event:"INSERT",schema:"public",table:"spits"},p=>{
-      const s=p.new;
-      const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
-      const y=s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20;
-      setSpits(prev=>[{...s,x,y,reactions:{}},...prev]);
-    }).subscribe();
-    return()=>sb.removeChannel(ch);
-  },[user]);
-
-}
-
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
