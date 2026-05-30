@@ -738,6 +738,8 @@ function App(){
   const[clusterList,setClusterList]=useState(null);
   const[showRecord,setShowRecord]=useState(false);
   const[following,setFollowing]=useState([]);
+  const[showProfile,setShowProfile]=useState(false);
+  const[mySpits,setMySpits]=useState([]);
 
   const handleSpitClick=(group)=>{
     if(!group||group.length===0)return;
@@ -748,7 +750,7 @@ function App(){
   // Restore session
   useEffect(()=>{
     dbGetSession().then(profile=>{
-      if(profile)setUser({email:profile.email,handle:profile.handle,role:profile.role});
+      if(profile)setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role]});
       setChecking(false);
     });
     const{data:{subscription}}=sb.auth.onAuthStateChange((event)=>{
@@ -757,19 +759,17 @@ function App(){
     return()=>subscription.unsubscribe();
   },[]);
 
-  // Load spits when logged in
+  const loadSpits=()=>dbGetSpits().then(data=>{
+    const positioned=data.map(s=>({...s,
+      x:s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20,
+      y:s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20
+    }));
+    setSpits(positioned);
+  });
+
   useEffect(()=>{
     if(!user)return;
-    dbGetSpits().then(data=>{
-      // Place on globe: use lat/lon to compute x/y percentage on SVG globe
-      const positioned=data.map(s=>{
-        const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
-        const y=s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20;
-        return{...s,x,y};
-      });
-      setSpits(positioned);
-    });
-    // Realtime
+    loadSpits();
     const ch=sb.channel("spits").on("postgres_changes",{event:"INSERT",schema:"public",table:"spits"},p=>{
       const s=p.new;
       const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
@@ -778,6 +778,24 @@ function App(){
     }).subscribe();
     return()=>sb.removeChannel(ch);
   },[user]);
+
+  // Load my spits when profile opens
+  useEffect(()=>{
+    if(!showProfile||!user)return;
+    sb.from("spits").select("*").eq("handle",user.handle).order("created_at",{ascending:false})
+      .then(({data})=>setMySpits(data||[]));
+  },[showProfile,user]);
+
+  const deleteSpit=async(id)=>{
+    await sb.from("spits").delete().eq("id",id);
+    setMySpits(p=>p.filter(s=>s.id!==id));
+    loadSpits();
+  };
+
+  const updateRoles=async(roles)=>{
+    setUser(p=>({...p,roles}));
+    await sb.from("users").update({roles:JSON.stringify(roles)}).eq("handle",user.handle);
+  };
 
   const logout=async()=>{await sb.auth.signOut();setUser(null);};
   const toggleFollow=h=>setFollowing(p=>p.includes(h)?p.filter(x=>x!==h):[...p,h]);
@@ -793,6 +811,90 @@ function App(){
 
   if(!user)return <AuthScreen onLogin={setUser}/>;
 
+  // ── Profile Screen ──────────────────────────────────────────────────────────
+  if(showProfile)return(
+    <div style={{background:"#f7f7f7",minHeight:"100vh",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
+      <header style={{background:"#fff",padding:"0 24px",height:64,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
+        <button onClick={()=>setShowProfile(false)} style={{background:"none",border:"none",fontSize:14,color:RAUSCH,cursor:"pointer",fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+          ← Volver
+        </button>
+        <span style={{fontSize:16,fontWeight:700,color:"#222"}}>Mi perfil</span>
+        <button onClick={logout} style={{background:"none",border:"none",fontSize:12,color:"#bbb",cursor:"pointer"}}>Salir</button>
+      </header>
+
+      <div style={{maxWidth:560,margin:"0 auto",padding:"24px 20px"}}>
+        {/* Profile card */}
+        <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:20}}>
+          <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:20}}>
+            <div style={{width:56,height:56,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>
+              {(user.roles||[user.role]).includes("Anfitrión")&&(user.roles||[user.role]).includes("Huésped")?"🏠🧳":(user.roles||[user.role]).includes("Anfitrión")?"🏠":(user.roles||[user.role]).includes("Huésped")?"🧳":"🗂️"}
+            </div>
+            <div>
+              <div style={{fontSize:18,fontWeight:700,color:"#222"}}>{user.handle}</div>
+              <div style={{fontSize:12,color:"#aaa",marginTop:2}}>{user.email}</div>
+            </div>
+          </div>
+
+          {/* Roles */}
+          <div>
+            <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:10,textTransform:"uppercase",letterSpacing:0.5}}>Mis roles</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {ROLES.map(r=>{
+                const active=(user.roles||[user.role]).includes(r);
+                return(
+                  <button key={r} onClick={()=>{
+                    const current=user.roles||[user.role];
+                    const next=active?current.filter(x=>x!==r):[...current,r];
+                    if(next.length===0)return; // at least one role
+                    updateRoles(next);
+                  }} style={{
+                    padding:"8px 14px",borderRadius:20,fontSize:12,fontWeight:500,cursor:"pointer",
+                    background:active?RAUSCH:"#f7f7f7",
+                    border:active?"none":"1.5px solid #e8e8e8",
+                    color:active?"#fff":"#555",transition:"all 0.15s",
+                  }}>{r}</button>
+                );
+              })}
+            </div>
+            <p style={{fontSize:11,color:"#bbb",marginTop:8}}>Podés tener más de un rol — cuando grabés elegís desde cuál hablás.</p>
+          </div>
+        </div>
+
+        {/* My spits */}
+        <div>
+          <div style={{fontSize:14,fontWeight:700,color:"#222",marginBottom:12}}>
+            Mis spits ({mySpits.length})
+          </div>
+          {mySpits.length===0?(
+            <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>
+              Todavía no escupiste nada.
+            </div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {mySpits.map(s=>(
+                <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                    <div>
+                      <span style={{fontSize:11,color:RAUSCH,fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>{s.role}</span>
+                      <span style={{fontSize:11,color:"#bbb",marginLeft:8}}>{s.duration}s</span>
+                      {s.audio_url&&<span style={{fontSize:11,color:"#bbb",marginLeft:8}}>🔊</span>}
+                    </div>
+                    <button onClick={()=>deleteSpit(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#ddd",padding:"2px 6px",borderRadius:6,transition:"all 0.15s"}}
+                      onMouseOver={e=>e.currentTarget.style.color=RAUSCH}
+                      onMouseOut={e=>e.currentTarget.style.color="#ddd"}>
+                      🗑
+                    </button>
+                  </div>
+                  <Player duration={s.duration} audioUrl={s.audio_url}/>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return(
     <div style={{background:"#f7f7f7",minHeight:"100vh",display:"flex",flexDirection:"column",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:"#222"}}>
       <header style={{background:"#fff",padding:"0 24px",height:64,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
@@ -800,14 +902,16 @@ function App(){
           <span style={{color:RAUSCH}}>air</span>spit
         </div>
         <div style={{display:"flex",gap:12,alignItems:"center"}}>
-          {/* Global counter */}
           <div style={{textAlign:"center",lineHeight:1}}>
             <div style={{fontSize:16,fontWeight:800,color:RAUSCH,letterSpacing:-0.5}}>{spits.length.toLocaleString()}</div>
             <div style={{fontSize:9,color:"#bbb",textTransform:"uppercase",letterSpacing:1}}>spits globales</div>
           </div>
           <div style={{width:1,height:28,background:"#ebebeb"}}/>
-          <span style={{fontSize:12,color:"#888",background:"#f5f5f5",padding:"4px 10px",borderRadius:20}}>{user.handle}</span>
-          <button onClick={logout} style={{background:"none",border:"none",fontSize:12,color:"#bbb",cursor:"pointer"}}>Salir</button>
+          <button onClick={()=>setShowProfile(true)} style={{fontSize:12,color:"#555",background:"#f5f5f5",padding:"6px 12px",borderRadius:20,border:"none",cursor:"pointer",fontWeight:600,transition:"all 0.15s"}}
+            onMouseOver={e=>e.currentTarget.style.background="#ffe8ec"}
+            onMouseOut={e=>e.currentTarget.style.background="#f5f5f5"}>
+            {user.handle}
+          </button>
           <button onClick={()=>setShowRecord(true)} style={{background:RAUSCH,border:"none",color:"#fff",padding:"10px 18px",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600,boxShadow:`0 2px 8px rgba(255,56,92,0.3)`}}>+ Escupir</button>
         </div>
       </header>
@@ -848,12 +952,33 @@ function App(){
           </div>
         )}
       </main>
-      {showRecord&&<RecordModal onClose={()=>setShowRecord(false)} currentUser={user} onSaved={()=>dbGetSpits().then(data=>{
-        const positioned=data.map(s=>({...s,x:s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20,y:s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20}));
-        setSpits(positioned);
-      })}/>}
+      {showRecord&&<RecordModal onClose={()=>setShowRecord(false)} currentUser={user} onSaved={loadSpits}/>}
     </div>
   );
+}
+
+  // Load spits when logged in
+  useEffect(()=>{
+    if(!user)return;
+    dbGetSpits().then(data=>{
+      // Place on globe: use lat/lon to compute x/y percentage on SVG globe
+      const positioned=data.map(s=>{
+        const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
+        const y=s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20;
+        return{...s,x,y};
+      });
+      setSpits(positioned);
+    });
+    // Realtime
+    const ch=sb.channel("spits").on("postgres_changes",{event:"INSERT",schema:"public",table:"spits"},p=>{
+      const s=p.new;
+      const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
+      const y=s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20;
+      setSpits(prev=>[{...s,x,y,reactions:{}},...prev]);
+    }).subscribe();
+    return()=>sb.removeChannel(ch);
+  },[user]);
+
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
