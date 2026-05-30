@@ -922,8 +922,30 @@ function Landing({onEnter,showAuth,onLogin}){
       </div>
 
       {/* Footer */}
-      <div style={{borderTop:"1px solid #f0f0f0",padding:"24px",textAlign:"center",color:"#ccc",fontSize:12}}>
-        <span style={{fontWeight:700,color:"#aaa"}}><span style={{color:RAUSCH}}>air</span>spit</span> · {T.footer} · airspit.com
+      <div style={{borderTop:"1px solid #f0f0f0",padding:"32px 24px",textAlign:"center"}}>
+        <div style={{fontSize:20,fontWeight:800,letterSpacing:-0.5,marginBottom:16}}>
+          <span style={{color:RAUSCH}}>air</span>spit
+        </div>
+        <p style={{fontSize:13,color:"#aaa",marginBottom:6}}>
+          Escupí lo que sentís. Escuchá lo que otros viven.
+        </p>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20,margin:"16px 0",flexWrap:"wrap"}}>
+          <a href="mailto:airspitnow@gmail.com" style={{fontSize:13,color:"#888",textDecoration:"none",display:"flex",alignItems:"center",gap:6}}>
+            ✉️ airspitnow@gmail.com
+          </a>
+          <a href="https://www.instagram.com/airspit" target="_blank" rel="noopener noreferrer"
+            style={{display:"flex",alignItems:"center",gap:6,textDecoration:"none",color:"#888",fontSize:13}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+              <circle cx="12" cy="12" r="4"/>
+              <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+            </svg>
+            @airspit
+          </a>
+        </div>
+        <div style={{fontSize:11,color:"#ccc",marginTop:8}}>
+          © 2026 AirSpit. Todos los derechos reservados.
+        </div>
       </div>
     </div>
   );
