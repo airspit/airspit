@@ -421,7 +421,7 @@ function Player({duration,audioUrl}){
 // ── SpitCard ──────────────────────────────────────────────────────────────────
 function SpitCard({spit,onClose,following,onFollowToggle,currentUser}){
   const[myR,setMyR]=useState([]);
-  const[reactions,setReactions]=useState(spit.reactions||{});
+  const[reactions,setReactions]=useState({});
   const[translated,setTranslated]=useState(null);
   const[translating,setTranslating]=useState(false);
   const[showFull,setShowFull]=useState(false);
@@ -430,18 +430,39 @@ function SpitCard({spit,onClose,following,onFollowToggle,currentUser}){
   const needsTr=spitLang!==userLang;
   const isFollowing=following&&following.includes(spit.handle);
 
+  // Load reactions from Supabase
   useEffect(()=>{
-    setTranslated(null);setTranslating(false);setShowFull(false);setMyR([]);
+    setTranslated(null);setTranslating(false);setShowFull(false);setMyR([]);setReactions({});
+    // Load all reactions for this spit
+    sb.from("reactions").select("emoji,handle").eq("spit_id",spit.id).then(({data})=>{
+      if(!data)return;
+      const counts={};
+      const mine=[];
+      data.forEach(r=>{
+        counts[r.emoji]=(counts[r.emoji]||0)+1;
+        if(r.handle===currentUser?.handle)mine.push(r.emoji);
+      });
+      setReactions(counts);
+      setMyR(mine);
+    });
     if(needsTr&&spit.transcript){
       setTranslating(true);
       translateText(spit.transcript||spit.text||"",userLang,spitLang).then(t=>{setTranslated(t);setTranslating(false);});
     }
   },[spit.id]);
 
-  const react=emoji=>{
+  const react=async(emoji)=>{
     const has=myR.includes(emoji);
-    if(has){setMyR(r=>r.filter(e=>e!==emoji));setReactions(p=>({...p,[emoji]:Math.max(0,(p[emoji]||0)-1)}));}
-    else{if(myR.length>=MAX_REACTIONS)return;setMyR(r=>[...r,emoji]);setReactions(p=>({...p,[emoji]:(p[emoji]||0)+1}));}
+    if(has){
+      setMyR(r=>r.filter(e=>e!==emoji));
+      setReactions(p=>({...p,[emoji]:Math.max(0,(p[emoji]||0)-1)}));
+      await sb.from("reactions").delete().eq("spit_id",spit.id).eq("handle",currentUser.handle).eq("emoji",emoji);
+    }else{
+      if(myR.length>=MAX_REACTIONS)return;
+      setMyR(r=>[...r,emoji]);
+      setReactions(p=>({...p,[emoji]:(p[emoji]||0)+1}));
+      await sb.from("reactions").insert([{spit_id:spit.id,handle:currentUser.handle,emoji}]);
+    }
   };
 
   const txt=needsTr?(translated||(spit.transcript||"")):( spit.transcript||spit.text||"");
