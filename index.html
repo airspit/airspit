@@ -6,6 +6,7 @@
 <title>AirSpit</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
@@ -162,8 +163,16 @@ function AuthScreen({onLogin}){
 
 // ── Globe SVG ─────────────────────────────────────────────────────────────────
 // ── World Map SVG ─────────────────────────────────────────────────────────────
+
+// ── Canvas World Map ──────────────────────────────────────────────────────────
 function GlobeSVG({spits,onSpitClick,activeSpit}){
-  const CLUSTER_DIST=3;
+  const canvasRef=useRef(null);
+  const[worldData,setWorldData]=useState(null);
+  const[size,setSize]=useState({w:800,h:400});
+  const containerRef=useRef(null);
+
+  // Cluster spits
+  const CLUSTER_DIST=2.5;
   const used=new Set();
   const clusters=[];
   spits.forEach((s,i)=>{
@@ -178,62 +187,127 @@ function GlobeSVG({spits,onSpitClick,activeSpit}){
     clusters.push(group);
   });
 
+  // Load world data once
+  useEffect(()=>{
+    fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json")
+      .then(r=>r.json())
+      .then(world=>{
+        const countries=topojson.feature(world,world.objects.countries);
+        const borders=topojson.mesh(world,world.objects.countries,(a,b)=>a!==b);
+        setWorldData({countries,borders});
+      }).catch(()=>{});
+  },[]);
+
+  // Update canvas size
+  useEffect(()=>{
+    const el=containerRef.current;
+    if(!el)return;
+    const update=()=>setSize({w:el.clientWidth,h:el.clientHeight});
+    update();
+    const ro=new ResizeObserver(update);
+    ro.observe(el);
+    return()=>ro.disconnect();
+  },[]);
+
+  // Draw map on canvas
+  useEffect(()=>{
+    const canvas=canvasRef.current;
+    if(!canvas||!worldData)return;
+    const {w,h}=size;
+    canvas.width=w*window.devicePixelRatio;
+    canvas.height=h*window.devicePixelRatio;
+    canvas.style.width=w+"px";
+    canvas.style.height=h+"px";
+    const ctx=canvas.getContext("2d");
+    ctx.scale(window.devicePixelRatio,window.devicePixelRatio);
+
+    // Mercator-like projection
+    const proj=(lon,lat)=>{
+      const x=(lon+180)/360*w;
+      const latR=Math.max(-85,Math.min(85,lat))*Math.PI/180;
+      const y=h/2-w/(2*Math.PI)*Math.log(Math.tan(Math.PI/4+latR/2));
+      return[x,y];
+    };
+
+    // Background
+    ctx.fillStyle="#f0f4f8";
+    ctx.fillRect(0,0,w,h);
+
+    // Ocean tint
+    ctx.fillStyle="#dce8f5";
+    ctx.fillRect(0,0,w,h);
+
+    // Draw countries
+    const drawGeo=(geom,fill,stroke,lineWidth)=>{
+      const drawRing=(ring)=>{
+        ring.forEach(([lon,lat],i)=>{
+          const[x,y]=proj(lon,lat);
+          if(i===0)ctx.moveTo(x,y);
+          else ctx.lineTo(x,y);
+        });
+        ctx.closePath();
+      };
+      ctx.beginPath();
+      if(geom.type==="Polygon"){
+        geom.coordinates.forEach(drawRing);
+      } else if(geom.type==="MultiPolygon"){
+        geom.coordinates.forEach(poly=>poly.forEach(drawRing));
+      }
+      if(fill){ctx.fillStyle=fill;ctx.fill();}
+      if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lineWidth||0.5;ctx.stroke();}
+    };
+
+    // Fill countries
+    worldData.countries.features.forEach(f=>{
+      drawGeo(f.geometry,"#e8eef5",null);
+    });
+
+    // Country borders
+    const drawMesh=(mesh,stroke,lw)=>{
+      ctx.beginPath();
+      const drawCoords=(coords)=>{
+        coords.forEach((ring,ri)=>{
+          ring.forEach(([lon,lat],i)=>{
+            const[x,y]=proj(lon,lat);
+            if(i===0)ctx.moveTo(x,y);
+            else ctx.lineTo(x,y);
+          });
+        });
+      };
+      if(mesh.type==="MultiLineString")mesh.coordinates.forEach(line=>{
+        line.forEach(([lon,lat],i)=>{
+          const[x,y]=proj(lon,lat);
+          if(i===0)ctx.moveTo(x,y);
+          else ctx.lineTo(x,y);
+        });
+      });
+      ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke();
+    };
+    drawMesh(worldData.borders,"#c8d4e0",0.6);
+
+    // Coastline / outer border
+    worldData.countries.features.forEach(f=>{
+      drawGeo(f.geometry,null,"#b0c0d0",0.3);
+    });
+
+    // Subtle grid
+    ctx.strokeStyle="rgba(180,200,220,0.3)";
+    ctx.lineWidth=0.5;
+    ctx.setLineDash([3,4]);
+    // Equator
+    ctx.beginPath();
+    const[x0,y0]=proj(-180,0);const[x1,y1]=proj(180,0);
+    ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
+    ctx.setLineDash([]);
+
+  },[worldData,size]);
+
   return(
-    <div style={{position:"relative",width:"100%",height:"100%"}}>
-      <svg viewBox="0 0 1000 500" style={{width:"100%",height:"100%",position:"absolute"}} xmlns="http://www.w3.org/2000/svg">
-        {/* Background */}
-        <rect width="1000" height="500" fill="#f8f9fb" rx="12"/>
-
-        {/* Continents - simplified Natural Earth paths */}
-        <g fill="#e2e6ed" stroke="#fff" strokeWidth="1.5">
-          {/* North America */}
-          <path d="M120,60 L180,55 L220,65 L250,80 L260,110 L240,130 L230,160 L210,180 L195,210 L180,230 L165,250 L150,260 L135,255 L120,240 L105,220 L95,195 L90,170 L95,145 L105,120 L110,95 Z"/>
-          {/* Greenland */}
-          <path d="M195,30 L225,25 L240,35 L235,55 L215,60 L200,50 Z"/>
-          {/* Central America */}
-          <path d="M165,250 L175,260 L170,275 L160,280 L155,270 L158,258 Z"/>
-          {/* South America */}
-          <path d="M175,270 L200,265 L225,275 L240,300 L245,335 L240,370 L225,400 L205,420 L185,415 L168,395 L160,365 L158,330 L162,300 L170,280 Z"/>
-          {/* Europe */}
-          <path d="M450,60 L480,55 L510,60 L525,75 L520,95 L505,105 L490,110 L475,105 L460,95 L448,80 Z"/>
-          {/* UK */}
-          <path d="M430,65 L442,62 L445,75 L438,82 L428,78 Z"/>
-          {/* Scandinavia */}
-          <path d="M460,40 L480,35 L495,45 L490,65 L475,70 L462,62 Z"/>
-          {/* Africa */}
-          <path d="M450,115 L490,110 L520,120 L535,145 L540,175 L538,210 L530,245 L515,275 L495,295 L475,300 L455,290 L440,265 L432,235 L430,200 L435,165 L440,135 Z"/>
-          {/* Asia */}
-          <path d="M525,45 L580,40 L640,38 L700,42 L750,50 L790,60 L820,75 L830,95 L820,115 L800,130 L775,140 L745,145 L715,140 L685,135 L655,130 L625,125 L600,120 L575,115 L555,110 L538,100 L525,85 L520,65 Z"/>
-          {/* Indian subcontinent */}
-          <path d="M620,130 L645,125 L660,140 L658,165 L645,185 L628,190 L615,175 L612,155 Z"/>
-          {/* Southeast Asia */}
-          <path d="M710,140 L740,135 L760,145 L765,165 L750,180 L730,182 L715,170 L708,155 Z"/>
-          {/* Japan */}
-          <path d="M790,80 L805,75 L815,85 L810,100 L795,103 L785,93 Z"/>
-          {/* Australia */}
-          <path d="M730,310 L785,305 L830,315 L855,335 L858,365 L845,390 L820,405 L790,408 L760,400 L738,380 L725,355 L723,330 Z"/>
-          {/* New Zealand */}
-          <path d="M870,385 L882,380 L888,395 L880,408 L868,405 Z"/>
-          {/* Middle East */}
-          <path d="M538,100 L570,95 L590,105 L595,125 L580,135 L558,132 L540,120 Z"/>
-          {/* Madagascar */}
-          <path d="M548,255 L558,250 L565,265 L560,282 L548,280 Z"/>
-          {/* Iceland */}
-          <path d="M400,45 L418,42 L425,52 L415,60 L400,58 Z"/>
-        </g>
-
-        {/* Subtle grid lines */}
-        <g stroke="#dde1e8" strokeWidth="0.5" opacity="0.5">
-          <line x1="0" y1="250" x2="1000" y2="250"/>
-          <line x1="250" y1="0" x2="250" y2="500"/>
-          <line x1="500" y1="0" x2="500" y2="500"/>
-          <line x1="750" y1="0" x2="750" y2="500"/>
-        </g>
-      </svg>
+    <div ref={containerRef} style={{position:"relative",width:"100%",height:"100%",borderRadius:12,overflow:"hidden"}}>
+      <canvas ref={canvasRef} style={{position:"absolute",top:0,left:0,borderRadius:12}}/>
 
       {/* Dots */}
       {clusters.map((group,i)=>{
-        // Convert x/y (globe %) to map coordinates
         const cx=group.reduce((a,s)=>a+(s.x||50),0)/group.length;
         const cy=group.reduce((a,s)=>a+(s.y||50),0)/group.length;
         const isCluster=group.length>1;
@@ -738,8 +812,8 @@ function App(){
         </div>
       </header>
       <main style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 0 160px",position:"relative"}}>
-        <div style={{background:"#fff",borderRadius:20,boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:20,width:"min(760px,95vw)"}}>
-          <div style={{width:"min(700px,90vw)",height:"min(360px,45vw)",position:"relative"}}>
+        <div style={{background:"#fff",borderRadius:20,boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:20,width:"min(800px,96vw)"}}>
+          <div style={{width:"100%",height:"min(400px,50vw)",minHeight:220,position:"relative"}}>
             <GlobeSVG spits={spits} onSpitClick={handleSpitClick} activeSpit={activeSpit}/>
           </div>
         </div>
