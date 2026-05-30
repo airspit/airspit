@@ -135,7 +135,6 @@ function AuthScreen({onLogin}){
     setLoading(false);
   };
 
-  // Forgot password screen
   if(forgotMode)return(
     <div style={{minHeight:"100vh",background:"#fff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{marginBottom:40,textAlign:"center"}}>
@@ -174,24 +173,6 @@ function AuthScreen({onLogin}){
       </div>
     </div>
   );
-
-  const submit=async()=>{
-    setError("");
-    if(!email||!password){setError("Completá email y contraseña.");return;}
-    setLoading(true);
-    if(mode==="register"){
-      if(!handle||!role){setError("Completá todos los campos.");setLoading(false);return;}
-      const h="@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,"");
-      const{error:err}=await dbRegister(email,password,h,role);
-      if(err){setError(err);setLoading(false);return;}
-      onLogin({email,handle:h,role});
-    }else{
-      const{data,error:err}=await dbLogin(email,password);
-      if(err){setError(err);setLoading(false);return;}
-      onLogin({email:data.email,handle:data.handle,role:data.role});
-    }
-    setLoading(false);
-  };
 
   return(
     <div style={{minHeight:"100vh",background:"#fff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
