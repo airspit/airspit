@@ -1039,7 +1039,7 @@ const TEXTS={
 };
 
 // ── Landing ───────────────────────────────────────────────────────────────────
-function Landing({onEnter,showAuth,onLogin,loggedIn,onBack}){
+function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){ 
   const[lang,setLang]=useState(()=>navigator.language?.startsWith("es")?"es":"en");
   const[scrolled,setScrolled]=useState(false);
   const T=TEXTS[lang];
@@ -1178,6 +1178,11 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack}){
             @airspit
           </a>
         </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,margin:"16px 0",flexWrap:"wrap"}}>
+          <button onClick={()=>onLegal("terms")} style={{background:"none",border:"none",fontSize:12,color:"#aaa",cursor:"pointer",textDecoration:"underline",padding:0}}>Términos de Uso</button>
+          <button onClick={()=>onLegal("privacy")} style={{background:"none",border:"none",fontSize:12,color:"#aaa",cursor:"pointer",textDecoration:"underline",padding:0}}>Política de Privacidad</button>
+          <button onClick={()=>onLegal("community")} style={{background:"none",border:"none",fontSize:12,color:"#aaa",cursor:"pointer",textDecoration:"underline",padding:0}}>Normas de la Comunidad</button>
+        </div>
         <div style={{fontSize:11,color:"#ccc",marginTop:8}}>
           © 2026 AirSpit. Todos los derechos reservados.
         </div>
@@ -1186,6 +1191,135 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack}){
   );
 }
 
+
+// ── Legal Pages ───────────────────────────────────────────────────────────────
+function LegalPage({title,onClose,children}){
+  return(
+    <div style={{minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
+      <header style={{background:"#fff",padding:"0 24px",height:64,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:14,color:RAUSCH,cursor:"pointer",fontWeight:600,display:"flex",alignItems:"center",gap:6}}>{"← Volver"}</button>
+        <span style={{fontSize:16,fontWeight:700,color:"#222"}}>{title}</span>
+        <div style={{width:60}}/>
+      </header>
+      <div style={{maxWidth:680,margin:"0 auto",padding:"32px 24px 80px"}}>
+        <div style={{background:"#fff",borderRadius:16,padding:"32px 28px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",fontSize:14,color:"#444",lineHeight:1.8}}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+function TermsPage({onClose}){
+  const H=({children})=><h2 style={{fontSize:16,fontWeight:700,color:"#222",marginTop:28,marginBottom:8}}>{children}</h2>;
+  const P=({children})=><p style={{marginBottom:12}}>{children}</p>;
+  const Li=({children})=><li style={{marginBottom:6,marginLeft:16}}>{children}</li>;
+  return(
+    <LegalPage title="Términos de Uso" onClose={onClose}>
+      <p style={{fontSize:12,color:"#aaa",marginBottom:24}}>Última actualización: junio de 2026</p>
+      <P>Los presentes Términos de Uso regulan el acceso y la utilización de AirSpit, operada por AirSpit. Al registrarse, el usuario acepta íntegramente estos términos.</P>
+      <H>1. Edad mínima</H>
+      <P>El uso de AirSpit está reservado exclusivamente a personas que tengan 18 años de edad o la edad mínima legal requerida en su país de residencia para acceder a servicios digitales, tomándose siempre la que resulte mayor. Al registrarse, el usuario declara bajo su responsabilidad cumplir con dicho requisito. AirSpit se reserva el derecho de suspender cualquier cuenta que no lo cumpla.</P>
+      <H>2. Registro y cuenta</H>
+      <P>El usuario se registra mediante un nickname anónimo y una dirección de correo electrónico. El correo es utilizado únicamente para autenticación y no será visible para otros usuarios. El usuario es responsable de mantener la confidencialidad de sus credenciales.</P>
+      <H>3. Contenido publicado</H>
+      <P>El usuario es el único responsable del contenido de audio que publica. AirSpit se reserva el derecho de eliminar cualquier spit y/o suspender cuentas que violen estos términos, la legislación vigente o las Normas de la Comunidad.</P>
+      <H>4. Contenido prohibido</H>
+      <P>Queda estrictamente prohibido publicar contenido que:</P>
+      <ul style={{marginBottom:12}}>
+        <Li>Incite al odio, la violencia o la discriminación por raza, etnia, religión, género, orientación sexual, identidad de género, discapacidad o nacionalidad.</Li>
+        <Li>Acose, amenace, intimide o difame a personas identificables.</Li>
+        <Li>Exponga datos personales de terceros sin su consentimiento.</Li>
+        <Li>Contenga material sexual explícito o pornográfico.</Li>
+        <Li>Promueva actividades ilegales o constituya spam.</Li>
+        <Li>Infrinja derechos de propiedad intelectual de terceros.</Li>
+      </ul>
+      <H>5. Sanciones</H>
+      <ul style={{marginBottom:12}}>
+        <Li><strong>Infracciones leves:</strong> eliminación del spit sin notificación previa.</Li>
+        <Li><strong>Infracciones graves o reiteradas:</strong> suspensión temporal o permanente de la cuenta, sin derecho a reembolso ni compensación.</Li>
+      </ul>
+      <P>AirSpit determina la gravedad de cada infracción a su exclusivo criterio.</P>
+      <H>6. Propiedad del contenido</H>
+      <P>Al publicar un audio en AirSpit, el usuario otorga a AirSpit una licencia exclusiva, irrevocable, perpetua y mundial y completamente gratuita para usar, reproducir, modificar, distribuir, exhibir, sublicenciar y explotar comercialmente dicho contenido en cualquier formato y medio, incluyendo pero no limitándose a: publicaciones en redes sociales, campañas publicitarias, material promocional, medios digitales e impresos, y cualquier otro fin comercial o institucional que AirSpit considere pertinente. El usuario renuncia expresamente a cualquier derecho de reclamación económica o moral sobre dicho uso. Esta licencia subsiste aun cuando el usuario elimine su cuenta o el contenido de la Plataforma.</P>
+      <H>7. Limitación de responsabilidad</H>
+      <P>AirSpit no se responsabiliza por el contenido generado por usuarios ni por daños derivados del uso de la Plataforma. El servicio se presta "tal como está", sin garantías de disponibilidad continua.</P>
+      <H>8. Contacto</H>
+      <P>Para consultas: <strong>airspitnow@gmail.com</strong></P>
+    </LegalPage>
+  );
+}
+function PrivacyPage({onClose}){
+  const H=({children})=><h2 style={{fontSize:16,fontWeight:700,color:"#222",marginTop:28,marginBottom:8}}>{children}</h2>;
+  const P=({children})=><p style={{marginBottom:12}}>{children}</p>;
+  const Li=({children})=><li style={{marginBottom:6,marginLeft:16}}>{children}</li>;
+  return(
+    <LegalPage title="Política de Privacidad" onClose={onClose}>
+      <p style={{fontSize:12,color:"#aaa",marginBottom:24}}>Última actualización: junio de 2026</p>
+      <P>En AirSpit valoramos la privacidad de nuestros usuarios. Esta Política describe qué datos recopilamos, cómo los usamos y los derechos de los usuarios.</P>
+      <H>1. Datos que recopilamos</H>
+      <ul style={{marginBottom:12}}>
+        <Li><strong>Correo electrónico:</strong> solo para autenticación. No visible para otros usuarios.</Li>
+        <Li><strong>Nickname:</strong> nombre público anónimo elegido por el usuario.</Li>
+        <Li><strong>Archivos de audio:</strong> los spits publicados, almacenados en servidores seguros.</Li>
+        <Li><strong>Ciudad (opcional):</strong> si el usuario decide compartirla al publicar.</Li>
+        <Li><strong>Datos técnicos:</strong> idioma del navegador y metadatos básicos de sesión.</Li>
+      </ul>
+      <H>2. Cómo usamos los datos</H>
+      <ul style={{marginBottom:12}}>
+        <Li>Para permitir el registro, inicio de sesión y recuperación de contraseña.</Li>
+        <Li>Para mostrar los spits en el feed público.</Li>
+        <Li>Para mejorar el funcionamiento de la Plataforma.</Li>
+      </ul>
+      <H>3. Lo que no hacemos</H>
+      <ul style={{marginBottom:12}}>
+        <Li>No vendemos ni cedemos datos personales a terceros.</Li>
+        <Li>No mostramos publicidad basada en datos personales.</Li>
+        <Li>No compartimos el correo electrónico con otros usuarios.</Li>
+      </ul>
+      <H>4. Derechos del usuario</H>
+      <P>Todo usuario puede solicitar acceso, corrección o eliminación de sus datos escribiendo a <strong>airspitnow@gmail.com</strong>. Procesamos estas solicitudes en un plazo máximo de 30 días hábiles.</P>
+      <H>5. Cambios</H>
+      <P>Podemos actualizar esta Política en cualquier momento. La fecha de última actualización se indica al inicio del documento.</P>
+    </LegalPage>
+  );
+}
+function CommunityPage({onClose}){
+  const H=({children})=><h2 style={{fontSize:16,fontWeight:700,color:"#222",marginTop:28,marginBottom:8}}>{children}</h2>;
+  const P=({children})=><p style={{marginBottom:12}}>{children}</p>;
+  const Li=({children})=><li style={{marginBottom:6,marginLeft:16}}>{children}</li>;
+  return(
+    <LegalPage title="Normas de la Comunidad" onClose={onClose}>
+      <p style={{fontSize:12,color:"#aaa",marginBottom:24}}>Última actualización: junio de 2026</p>
+      <P>AirSpit es un espacio para expresarse con libertad y honestidad. Para que esa libertad sea posible para todos, es necesario respetar estas normas.</P>
+      <H>1. Respeto por la diversidad</H>
+      <P>AirSpit es una plataforma inclusiva y libre de discriminación. Está prohibido publicar contenido que denigre o ataque a personas por su:</P>
+      <ul style={{marginBottom:12}}>
+        <Li>Orientación sexual.</Li>
+        <Li>Identidad o expresión de género.</Li>
+        <Li>Raza o etnia, religión, nacionalidad, discapacidad o situación socioeconómica.</Li>
+      </ul>
+      <P>La comunidad LGBTIQ+ tiene un lugar garantizado en AirSpit. Cualquier forma de homofobia, transfobia, bifobia o discurso de odio vinculado a identidad de género u orientación sexual será sancionada con la máxima severidad, pudiendo resultar en suspensión permanente e inmediata.</P>
+      <H>2. No al acoso</H>
+      <P>No se tolerará acoso, hostigamiento, amenaza ni intimidación hacia otros usuarios o terceros.</P>
+      <H>3. Privacidad de terceros</H>
+      <P>Está prohibido revelar datos personales de otras personas.</P>
+      <H>4. Sin contenido explícito</H>
+      <P>No se permite contenido sexual.</P>
+      <H>5. Sin spam ni publicidad</H>
+      <P>AirSpit no es un canal publicitario. Queda prohibido el contenido con fines comerciales o promocionales.</P>
+      <H>6. Responsabilidad sobre lo que decís</H>
+      <P>El anonimato no es un escudo para el daño. Cada usuario es responsable de sus expresiones. El anonimato no exime de responsabilidad legal ante difamación, amenazas u otros delitos.</P>
+      <H>7. Sanciones</H>
+      <ul style={{marginBottom:12}}>
+        <Li><strong>Infracción leve:</strong> eliminación del spit, sin suspensión de cuenta.</Li>
+        <Li><strong>Infracción grave o reiterada:</strong> suspensión temporal (7 a 30 días).</Li>
+        <Li><strong>Infracción muy grave:</strong> suspensión permanente e inmediata, sin apelación.</Li>
+      </ul>
+      <H>8. Reportes</H>
+      <P>Si encontrás contenido que viola estas normas, escribinos a <strong>airspitnow@gmail.com</strong>. Revisamos cada reporte en un plazo de 72 horas hábiles.</P>
+    </LegalPage>
+  );
+}
 function CompleteProfile({email,authId,onDone}){
   const[handle,setHandle]=useState("");
   const[error,setError]=useState("");
@@ -1235,6 +1369,9 @@ function App(){
   const[mySpits,setMySpits]=useState([]);
   const[showListen,setShowListen]=useState(false);
   const[listenStart,setListenStart]=useState(0);
+  const[showTerms,setShowTerms]=useState(false);
+  const[showPrivacy,setShowPrivacy]=useState(false);
+  const[showCommunity,setShowCommunity]=useState(false);
 
   const handleSpitClick=(group)=>{
     if(!group||group.length===0)return;
@@ -1313,9 +1450,9 @@ function App(){
     </div>
   );
 
-  if(!user)return <Landing onEnter={()=>setShowAuth(true)} showAuth={showAuth} onLogin={(u)=>{setUser(u);setShowLanding(false);}}/>;
+  if(!user)return <Landing onEnter={()=>setShowAuth(true)} showAuth={showAuth} onLogin={(u)=>{setUser(u);setShowLanding(false);}} onLegal={(p)=>{if(p==="terms")setShowTerms(true);if(p==="privacy")setShowPrivacy(true);if(p==="community")setShowCommunity(true);}}/>;
 
-  if(showLanding)return <Landing onEnter={()=>setShowLanding(false)} showAuth={false} onLogin={(u)=>{setUser(u);setShowLanding(false);}} loggedIn={true} onBack={()=>setShowLanding(false)}/>;
+  if(showLanding)return <Landing onEnter={()=>setShowLanding(false)} showAuth={false} onLogin={(u)=>{setUser(u);setShowLanding(false);}} loggedIn={true} onBack={()=>setShowLanding(false)} onLegal={(p)=>{if(p==="terms")setShowTerms(true);if(p==="privacy")setShowPrivacy(true);if(p==="community")setShowCommunity(true);}}/>;
 
   // New Google user needs to complete profile
   if(user.needsProfile)return(
@@ -1496,6 +1633,13 @@ function App(){
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Legal footer */}
+      <div style={{textAlign:"center",padding:"8px 16px 16px",display:"flex",justifyContent:"center",gap:16,flexWrap:"wrap"}}>
+        <button onClick={()=>setShowTerms(true)} style={{background:"none",border:"none",fontSize:11,color:"#ccc",cursor:"pointer",textDecoration:"underline",padding:0}}>Términos de Uso</button>
+        <button onClick={()=>setShowPrivacy(true)} style={{background:"none",border:"none",fontSize:11,color:"#ccc",cursor:"pointer",textDecoration:"underline",padding:0}}>Privacidad</button>
+        <button onClick={()=>setShowCommunity(true)} style={{background:"none",border:"none",fontSize:11,color:"#ccc",cursor:"pointer",textDecoration:"underline",padding:0}}>Normas de la Comunidad</button>
       </div>
 
       {/* SpitCard modal */}
