@@ -270,83 +270,91 @@ function AuthScreen({onLogin}){
 
 // ── Leaflet Map ───────────────────────────────────────────────────────────────
 function GlobeSVG({spits,onSpitClick,activeSpit}){
-  const mapId="airspit-map-"+Math.random().toString(36).slice(2,7);
-  const mapIdRef=useRef("airspit-map");
+  const mapIdRef=useRef("airspit-map-"+Math.random().toString(36).slice(2,8));
   const mapRef=useRef(null);
   const markersRef=useRef([]);
   const cbRef=useRef(onSpitClick);
 
   useEffect(()=>{ cbRef.current=onSpitClick; },[onSpitClick]);
 
-  // Init map once
   useEffect(()=>{
     const L=window.L;
     if(!L||mapRef.current)return;
-
     const map=L.map(mapIdRef.current,{
-      center:[20,15],zoom:2,
-      minZoom:2,maxZoom:18,
-      zoomControl:true,
-      worldCopyJump:false,
+      center:[20,15],zoom:2,minZoom:2,maxZoom:18,zoomControl:true,
     });
-
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-      attribution:"© OpenStreetMap",
-      maxZoom:19,
+      attribution:"© OpenStreetMap",maxZoom:19,
     }).addTo(map);
-
     mapRef.current=map;
-    return()=>{
-      try{map.remove();}catch{}
-      mapRef.current=null;
-    };
+    map.on("zoomend",()=>updateMarkers(map,L));
+    return()=>{try{map.remove();}catch{}mapRef.current=null;};
   },[]);
 
-  // Update markers when spits change
+  const updateMarkers=(map,L)=>{
+    markersRef.current.forEach(m=>{try{m.remove();}catch{}});
+    markersRef.current=[];
+    const validSpits=spits.filter(s=>s.lat&&s.lon&&s.lat!==0&&s.lon!==0);
+    if(!validSpits.length)return;
+
+    // Cluster by pixel distance
+    const PIXEL_DIST=40;
+    const used=new Set();
+    const clusters=[];
+    validSpits.forEach((s,i)=>{
+      if(used.has(i))return;
+      const group=[s];used.add(i);
+      const pt=map.latLngToContainerPoint([s.lat,s.lon]);
+      validSpits.forEach((s2,j)=>{
+        if(used.has(j))return;
+        const pt2=map.latLngToContainerPoint([s2.lat,s2.lon]);
+        const dx=pt.x-pt2.x,dy=pt.y-pt2.y;
+        if(Math.sqrt(dx*dx+dy*dy)<PIXEL_DIST){group.push(s2);used.add(j);}
+      });
+      clusters.push(group);
+    });
+
+    clusters.forEach(group=>{
+      const avgLat=group.reduce((a,s)=>a+s.lat,0)/group.length;
+      const avgLon=group.reduce((a,s)=>a+s.lon,0)/group.length;
+      const isCluster=group.length>1;
+      const color=group[0].role==="Anfitrión"?RAUSCH:group[0].role==="Huésped"?BABU:ARCHES;
+      const isActive=!isCluster&&activeSpit?.id===group[0].id;
+
+      let html;
+      if(isCluster){
+        html=`<div style="width:32px;height:32px;border-radius:50%;background:${RAUSCH};border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;box-shadow:0 2px 10px rgba(255,56,92,0.5);cursor:pointer;">${group.length}</div>`;
+      } else {
+        const sz=isActive?18:12;
+        html=`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);cursor:pointer;animation:spitPulse 2s ease-in-out infinite;"></div>`;
+      }
+
+      const sz=isCluster?32:(isActive?18:12);
+      const icon=L.divIcon({html,className:"",iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+      const marker=L.marker([avgLat,avgLon],{icon});
+      marker.on("click",()=>cbRef.current(group));
+      marker.addTo(map);
+      markersRef.current.push(marker);
+    });
+  };
+
   useEffect(()=>{
     const L=window.L;
     const map=mapRef.current;
     if(!map||!L)return;
-
-    // Remove old markers
-    markersRef.current.forEach(m=>{try{m.remove();}catch{}});
-    markersRef.current=[];
-
-    // Group spits by proximity
-    const validSpits=spits.filter(s=>s.lat&&s.lon&&s.lat!==0&&s.lon!==0);
-
-    validSpits.forEach(spit=>{
-      const color=spit.role==="Anfitrión"?RAUSCH:spit.role==="Huésped"?BABU:ARCHES;
-      const isActive=activeSpit?.id===spit.id;
-      const size=isActive?18:12;
-
-      const icon=L.divIcon({
-        html:`<div style="
-          width:${size}px;height:${size}px;border-radius:50%;
-          background:${color};
-          border:2px solid #fff;
-          box-shadow:0 2px 8px rgba(0,0,0,0.3);
-          cursor:pointer;
-          transition:all 0.2s;
-        "></div>`,
-        className:"",
-        iconSize:[size,size],
-        iconAnchor:[size/2,size/2],
-      });
-
-      const marker=L.marker([spit.lat,spit.lon],{icon});
-      marker.on("click",function(){
-        cbRef.current([spit]);
-      });
-      marker.addTo(map);
-      markersRef.current.push(marker);
-    });
+    updateMarkers(map,L);
   },[spits,activeSpit]);
 
   return(
     <div style={{width:"100%",height:"100%",borderRadius:12,overflow:"hidden",position:"relative"}}>
       <div id={mapIdRef.current} style={{width:"100%",height:"100%"}}/>
-      <style>{`.leaflet-container{font-family:-apple-system,sans-serif}`}</style>
+      <style>{`
+        @keyframes spitPulse{
+          0%,100%{box-shadow:0 0 0 0 rgba(255,56,92,0.4),0 2px 8px rgba(0,0,0,0.3)}
+          50%{box-shadow:0 0 0 6px rgba(255,56,92,0),0 2px 8px rgba(0,0,0,0.3)}
+        }
+        .leaflet-container{font-family:-apple-system,sans-serif}
+      `}</style>
     </div>
   );
 }
@@ -676,7 +684,7 @@ function SpitCard({spit,onClose,following,onFollowToggle,currentUser}){
   const icon=spit.role==="Anfitrión"?"🏠":spit.role==="Huésped"?"🧳":"💬";
 
   return(
-    <div style={{position:"absolute",bottom:16,left:"50%",transform:"translateX(-50%)",width:"min(460px,92vw)",background:"#fff",borderRadius:16,boxShadow:"0 8px 40px rgba(0,0,0,0.12)",zIndex:100,animation:"slideUp 0.25s ease",overflow:"hidden"}}>
+    <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"min(460px,100vw)",background:"#fff",borderRadius:"16px 16px 0 0",boxShadow:"0 -4px 40px rgba(0,0,0,0.12)",zIndex:200,animation:"slideUp 0.25s ease",overflow:"hidden",maxHeight:"75vh",overflowY:"auto"}}>
       <div style={{height:3,background:`linear-gradient(90deg,${RAUSCH},#ff7a8a)`}}/>
       <div style={{padding:"18px 20px 20px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
@@ -1449,65 +1457,77 @@ function App(){
 
   return(
     <div style={{background:"#f7f7f7",minHeight:"100vh",display:"flex",flexDirection:"column",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:"#222"}}>
-      <header style={{background:"#fff",padding:"0 24px",height:64,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
-        <div style={{fontSize:20,fontWeight:800,letterSpacing:-0.5,cursor:"pointer"}} onClick={()=>setShowLanding(true)}>          <span style={{color:RAUSCH}}>air</span>spit
+      {/* Header — mobile first */}
+      <header style={{background:"#fff",padding:"0 16px",height:56,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
+        <div style={{fontSize:18,fontWeight:800,letterSpacing:-0.5,cursor:"pointer"}} onClick={()=>setShowLanding(true)}>
+          <span style={{color:RAUSCH}}>air</span>spit
         </div>
-        <div style={{display:"flex",gap:12,alignItems:"center"}}>
-          <div style={{textAlign:"center",lineHeight:1}}>
-            <div style={{fontSize:16,fontWeight:800,color:RAUSCH,letterSpacing:-0.5}}>{spits.length.toLocaleString()}</div>
-            <div style={{fontSize:9,color:"#bbb",textTransform:"uppercase",letterSpacing:1}}>spits globales</div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{textAlign:"center",lineHeight:1,marginRight:4}}>
+            <div style={{fontSize:14,fontWeight:800,color:RAUSCH}}>{spits.length}</div>
+            <div style={{fontSize:8,color:"#bbb",textTransform:"uppercase",letterSpacing:0.5}}>spits</div>
           </div>
-          <div style={{width:1,height:28,background:"#ebebeb"}}/>
-          <button onClick={()=>setShowProfile(true)} style={{fontSize:12,color:"#555",background:"#f5f5f5",padding:"6px 12px",borderRadius:20,border:"none",cursor:"pointer",fontWeight:600,transition:"all 0.15s"}}
-            onMouseOver={e=>e.currentTarget.style.background="#ffe8ec"}
-            onMouseOut={e=>e.currentTarget.style.background="#f5f5f5"}>
+          <button onClick={()=>setShowProfile(true)} style={{fontSize:11,color:"#555",background:"#f5f5f5",padding:"5px 10px",borderRadius:20,border:"none",cursor:"pointer",fontWeight:600,maxWidth:90,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
             {user.handle}
           </button>
-          <button onClick={()=>{setListenStart(0);setShowListen(true);}} style={{background:"rgba(255,56,92,0.1)",border:`1px solid ${RAUSCH}`,color:RAUSCH,padding:"8px 14px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
-            ▶ Escuchar
+          <button onClick={()=>{setListenStart(0);setShowListen(true);}} style={{background:`rgba(255,56,92,0.1)`,border:`1px solid ${RAUSCH}`,color:RAUSCH,padding:"7px 10px",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>
+            ▶
           </button>
-          <button onClick={()=>setShowRecord(true)} style={{background:RAUSCH,border:"none",color:"#fff",padding:"10px 18px",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600,boxShadow:`0 2px 8px rgba(255,56,92,0.3)`}}>+ Escupir</button>
+          <button onClick={()=>setShowRecord(true)} style={{background:RAUSCH,border:"none",color:"#fff",padding:"8px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:`0 2px 8px rgba(255,56,92,0.3)`,whiteSpace:"nowrap"}}>
+            + Escupir
+          </button>
         </div>
       </header>
-      <main style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 0 160px",position:"relative"}}>
-        <div style={{background:"#fff",borderRadius:20,boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:20,width:"min(800px,96vw)"}}>
-          <div style={{width:"100%",height:"min(480px,55vw)",minHeight:300,position:"relative"}}>
+
+      {/* Map — full height below header */}
+      <main style={{flex:1,display:"flex",flexDirection:"column",position:"relative"}}>
+        <div style={{flex:1,position:"relative",minHeight:"300px"}}>
+          <div style={{position:"absolute",inset:0}}>
             <GlobeSVG spits={spits} onSpitClick={handleSpitClick} activeSpit={activeSpit}/>
           </div>
         </div>
-        <p style={{fontSize:12,color:"#bbb",marginTop:14}}>Tocá un punto para escuchar</p>
-        <div style={{display:"flex",gap:16,marginTop:8,flexWrap:"wrap",justifyContent:"center"}}>
+
+        {/* Legend */}
+        <div style={{display:"flex",gap:14,padding:"8px 16px",background:"#fff",borderTop:"1px solid #f0f0f0",flexWrap:"wrap",justifyContent:"center"}}>
           {[{color:RAUSCH,label:"Anfitrión"},{color:BABU,label:"Huésped"},{color:ARCHES,label:"Otro"}].map(({color,label})=>(
-            <div key={label} style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"#aaa"}}>
+            <div key={label} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#aaa"}}>
               <div style={{width:8,height:8,borderRadius:"50%",background:color}}/>
               {label}
             </div>
           ))}
+          <span style={{fontSize:11,color:"#ccc"}}>· tocá un punto para escuchar</span>
         </div>
-        {activeSpit&&<SpitCard spit={activeSpit} onClose={()=>setActiveSpit(null)} following={following} onFollowToggle={toggleFollow} currentUser={user}/>}
+
+        {/* SpitCard modal */}
+        {activeSpit&&(
+          <div style={{position:"fixed",inset:0,zIndex:150,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(0,0,0,0.5)"}} onClick={()=>setActiveSpit(null)}>
+            <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:460,maxHeight:"85vh",overflowY:"auto",borderRadius:20,background:"#fff",boxShadow:"0 20px 60px rgba(0,0,0,0.2)",animation:"fadeUp 0.25s ease"}}>
+              <SpitCard spit={activeSpit} onClose={()=>setActiveSpit(null)} following={following} onFollowToggle={toggleFollow} currentUser={user}/>
+            </div>
+          </div>
+        )}
+
+        {/* Cluster list */}
         {clusterList&&(
-          <div style={{position:"absolute",bottom:16,left:"50%",transform:"translateX(-50%)",width:"min(460px,92vw)",background:"#fff",borderRadius:16,boxShadow:"0 8px 40px rgba(0,0,0,0.12)",zIndex:100,overflow:"hidden",animation:"slideUp 0.25s ease"}}>
-            <div style={{height:3,background:`linear-gradient(90deg,${RAUSCH},#ff7a8a)`}}/>
-            <div style={{padding:"16px 20px 20px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{position:"fixed",inset:0,zIndex:150,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.4)"}} onClick={()=>setClusterList(null)}>
+            <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:"#fff",borderRadius:"20px 20px 0 0",boxShadow:"0 -8px 40px rgba(0,0,0,0.12)",maxHeight:"70vh",overflow:"hidden",display:"flex",flexDirection:"column",animation:"sheetUp 0.3s ease"}}>
+              <div style={{width:40,height:4,background:"#e0e0e0",borderRadius:2,margin:"12px auto 0"}}/>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 20px 8px"}}>
                 <span style={{fontSize:15,fontWeight:700,color:"#222"}}>{clusterList.length} spits en esta zona</span>
                 <button onClick={()=>setClusterList(null)} style={{background:"#f5f5f5",border:"none",borderRadius:"50%",width:28,height:28,cursor:"pointer",fontSize:14,color:"#888"}}>×</button>
               </div>
-              <div style={{maxHeight:260,overflowY:"auto",display:"flex",flexDirection:"column",gap:2}}>
+              <div style={{overflowY:"auto",padding:"0 16px 24px",display:"flex",flexDirection:"column",gap:2}}>
                 {clusterList.map(s=>(
                   <div key={s.id} onClick={()=>{
                     const idx=spits.findIndex(sp=>sp.id===s.id);
                     setListenStart(idx>=0?idx:0);
                     setShowListen(true);
                     setClusterList(null);
-                  }}
-                    style={{display:"flex",alignItems:"center",gap:12,padding:"10px 8px",borderRadius:10,cursor:"pointer",transition:"background 0.15s"}}
-                    onMouseOver={e=>e.currentTarget.style.background="#f9f9f9"}
-                    onMouseOut={e=>e.currentTarget.style.background="transparent"}>
+                  }} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 8px",borderRadius:10,cursor:"pointer",borderBottom:"1px solid #f5f5f5"}}>
                     <div style={{width:36,height:36,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
                       {s.role==="Anfitrión"?"🏠":s.role==="Huésped"?"🧳":"💬"}
                     </div>
-                    <div style={{flex:1,minWidth:0}}>
+                    <div style={{flex:1}}>
                       <div style={{fontSize:13,fontWeight:600,color:"#222"}}>{s.handle}</div>
                       <div style={{fontSize:11,color:"#aaa"}}>{s.role} · {s.duration}s{s.audio_url?" · 🔊":""}</div>
                     </div>
@@ -1519,6 +1539,7 @@ function App(){
           </div>
         )}
       </main>
+
       {showRecord&&<RecordModal onClose={()=>setShowRecord(false)} currentUser={user} onSaved={loadSpits}/>}
       {showListen&&spits.length>0&&<ListenMode spits={spits} startIndex={listenStart} onClose={()=>setShowListen(false)} currentUser={user} following={following} onFollowToggle={toggleFollow}/>}
     </div>
