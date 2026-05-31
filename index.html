@@ -281,6 +281,8 @@ function GlobeSVG({spits,onSpitClick,activeSpit}){
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19}).addTo(map);
     mapRef.current=map;
     map.on("zoomend",()=>renderMarkers());
+    // Fix grey tiles on mobile
+    setTimeout(()=>map.invalidateSize(),100);
     return()=>{try{map.remove();}catch{}mapRef.current=null;};
   },[]);
 
@@ -341,6 +343,8 @@ function GlobeSVG({spits,onSpitClick,activeSpit}){
       <style>{`
         @keyframes spitPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,56,92,0.4),0 2px 8px rgba(0,0,0,0.25)}50%{box-shadow:0 0 0 7px rgba(255,56,92,0),0 2px 8px rgba(0,0,0,0.25)}}
         .leaflet-container{font-family:-apple-system,sans-serif}
+        .leaflet-tile{image-rendering:auto}
+        .leaflet-tile-container img{width:256px!important;height:256px!important}
       `}</style>
     </div>
   );
@@ -431,7 +435,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const isFollowing=following?.includes(spit.handle);
 
   return(
-    <div ref={containerRef} style={{position:"fixed",inset:0,background:"#0a0a0a",zIndex:300,display:"flex",flexDirection:"column",overflow:"hidden",userSelect:"none"}}
+    <div ref={containerRef} style={{position:"fixed",inset:0,background:"#0a0a0a",zIndex:1000,display:"flex",flexDirection:"column",overflow:"hidden",userSelect:"none"}}
       onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
       onClick={handleTap}>
 
@@ -892,7 +896,7 @@ function RecordModal({onClose,currentUser,onSaved}){
   useEffect(()=>()=>{clearInterval(tRef.current);stopPreview();},[]);
 
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(4px)"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(4px)"}}>
       <div style={{background:"#fff",borderRadius:"24px 24px 0 0",padding:"8px 28px 40px",width:"100%",maxWidth:480,boxShadow:"0 -8px 40px rgba(0,0,0,0.12)",animation:"sheetUp 0.3s ease"}}>
         <div style={{width:40,height:4,background:"#e0e0e0",borderRadius:2,margin:"12px auto 24px"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
