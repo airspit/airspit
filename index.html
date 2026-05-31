@@ -1458,39 +1458,51 @@ function App(){
   );
 
   return(
-    <div style={{height:"100vh",display:"flex",flexDirection:"column",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",overflow:"hidden"}}>
-      <header style={{background:"#fff",padding:"0 12px",height:52,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",flexShrink:0,zIndex:50}}>
+    <div style={{minHeight:"100vh",background:"#f7f7f7",display:"flex",flexDirection:"column",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
+
+      {/* Header */}
+      <header style={{background:"#fff",padding:"0 16px",height:56,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50,flexShrink:0}}>
         <div style={{fontSize:18,fontWeight:800,letterSpacing:-0.5,cursor:"pointer"}} onClick={()=>setShowLanding(true)}>
           <span style={{color:RAUSCH}}>air</span>spit
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          <span style={{fontSize:12,fontWeight:700,color:RAUSCH}}>{spits.length}</span>
-          <span style={{fontSize:9,color:"#bbb",textTransform:"uppercase"}}>spits</span>
-          <div style={{width:1,height:20,background:"#e8e8e8",margin:"0 2px"}}/>
-          <button onClick={()=>setShowProfile(true)} style={{fontSize:11,color:"#555",background:"#f5f5f5",padding:"5px 9px",borderRadius:20,border:"none",cursor:"pointer",fontWeight:600,maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+          <div style={{textAlign:"center",lineHeight:1,marginRight:2}}>
+            <div style={{fontSize:13,fontWeight:800,color:RAUSCH}}>{spits.length}</div>
+            <div style={{fontSize:8,color:"#bbb",textTransform:"uppercase",letterSpacing:0.5}}>spits</div>
+          </div>
+          <div style={{width:1,height:20,background:"#e8e8e8"}}/>
+          <button onClick={()=>setShowProfile(true)} style={{fontSize:11,color:"#555",background:"#f5f5f5",padding:"5px 9px",borderRadius:20,border:"none",cursor:"pointer",fontWeight:600,maxWidth:90,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
             {user.handle}
           </button>
           <button onClick={()=>{setListenStart(0);setShowListen(true);}} style={{background:`rgba(255,56,92,0.08)`,border:`1.5px solid ${RAUSCH}`,color:RAUSCH,padding:"6px 10px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700}}>▶</button>
-          <button onClick={()=>setShowRecord(true)} style={{background:RAUSCH,border:"none",color:"#fff",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:`0 2px 6px rgba(255,56,92,0.3)`}}>+ Escupir</button>
+          <button onClick={()=>setShowRecord(true)} style={{background:RAUSCH,border:"none",color:"#fff",padding:"7px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,boxShadow:`0 2px 6px rgba(255,56,92,0.3)`,whiteSpace:"nowrap"}}>+ Escupir</button>
         </div>
       </header>
 
-      <div style={{flex:1,position:"relative",overflow:"hidden"}}>
-        <GlobeSVG spits={spits} onSpitClick={handleSpitClick} activeSpit={activeSpit}/>
+      {/* Main content */}
+      <main style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"20px 16px 40px",position:"relative"}}>
+
+        {/* Map card */}
+        <div style={{background:"#fff",borderRadius:16,boxShadow:"0 4px 20px rgba(0,0,0,0.08)",padding:12,width:"100%",maxWidth:700,marginBottom:12}}>
+          <div style={{width:"100%",height:320,borderRadius:10,overflow:"hidden",position:"relative"}}>
+            <GlobeSVG spits={spits} onSpitClick={handleSpitClick} activeSpit={activeSpit}/>
+          </div>
+        </div>
 
         {/* Legend */}
-        <div style={{position:"absolute",bottom:8,left:"50%",transform:"translateX(-50%)",display:"flex",gap:12,background:"rgba(255,255,255,0.92)",backdropFilter:"blur(8px)",padding:"5px 14px",borderRadius:20,zIndex:10,boxShadow:"0 1px 8px rgba(0,0,0,0.1)"}}>
+        <div style={{display:"flex",gap:14,flexWrap:"wrap",justifyContent:"center",marginBottom:16}}>
           {[{color:RAUSCH,label:"Anfitrión"},{color:BABU,label:"Huésped"},{color:ARCHES,label:"Otro"}].map(({color,label})=>(
-            <div key={label} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#666"}}>
-              <div style={{width:7,height:7,borderRadius:"50%",background:color,flexShrink:0,animation:"spitPulse 2s ease-in-out infinite"}}/>
+            <div key={label} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#888"}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:color,flexShrink:0}}/>
               {label}
             </div>
           ))}
+          <span style={{fontSize:11,color:"#ccc"}}>· tocá un punto para escuchar</span>
         </div>
 
         {/* SpitCard modal */}
         {activeSpit&&(
-          <div style={{position:"absolute",inset:0,zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(0,0,0,0.45)"}} onClick={()=>setActiveSpit(null)}>
+          <div style={{position:"fixed",inset:0,zIndex:150,display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"rgba(0,0,0,0.45)"}} onClick={()=>setActiveSpit(null)}>
             <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:460,maxHeight:"85vh",overflowY:"auto",borderRadius:20,background:"#fff",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
               <SpitCard spit={activeSpit} onClose={()=>setActiveSpit(null)} following={following} onFollowToggle={toggleFollow} currentUser={user}/>
             </div>
@@ -1499,7 +1511,7 @@ function App(){
 
         {/* Cluster sheet */}
         {clusterList&&(
-          <div style={{position:"absolute",inset:0,zIndex:100,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.4)"}} onClick={()=>setClusterList(null)}>
+          <div style={{position:"fixed",inset:0,zIndex:150,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.4)"}} onClick={()=>setClusterList(null)}>
             <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,background:"#fff",borderRadius:"20px 20px 0 0",maxHeight:"65vh",display:"flex",flexDirection:"column"}}>
               <div style={{width:36,height:4,background:"#e0e0e0",borderRadius:2,margin:"10px auto"}}/>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 20px 10px"}}>
@@ -1524,7 +1536,7 @@ function App(){
             </div>
           </div>
         )}
-      </div>
+      </main>
 
       {showRecord&&<RecordModal onClose={()=>setShowRecord(false)} currentUser={user} onSaved={loadSpits}/>}
       {showListen&&spits.length>0&&<ListenMode spits={spits} startIndex={listenStart} onClose={()=>setShowListen(false)} currentUser={user} following={following} onFollowToggle={toggleFollow}/>}
