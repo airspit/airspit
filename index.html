@@ -31,14 +31,15 @@ const ARCHES='#FC642D';
 
 const roleColor=(role)=>{
   if(role==="Huésped")return BABU;
-  if(role==="Property Manager")return ARCHES;
-  return RAUSCH;
+  if(role==="Anfitrión")return RAUSCH;
+  return ARCHES; // Yo + anything else
 };
 const EMOJIS=["😳","😅","😤","🫣","🥴","🤭","😉"];
 const MAX_REACTIONS=3;
 const SPEEDS=[1,1.5,2];
 const LANG_NAMES={es:"español",en:"inglés",fr:"francés",ja:"japonés",de:"alemán",pt:"portugués",it:"italiano"};
-const ROLES=["Anfitrión","Huésped","Otro"];
+const ROLES=["Yo","Anfitrión","Huésped"];
+const ROLE_COLORS={"Yo":ARCHES,"Anfitrión":RAUSCH,"Huésped":BABU};
 const GENDERS=["M","F","No especifico"];
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
@@ -341,7 +342,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   if(!spit)return null;
 
   const roleColor_=r=>r==="Anfitrión"?RAUSCH:r==="Huésped"?BABU:ARCHES;
-  const roleIcon_=r=>r==="Anfitrión"?"🏠":r==="Huésped"?"🧳":"💬";
+  const roleIcon_=r=>r==="Anfitrión"?"🏠":r==="Huésped"?"🧳":r==="Yo"?"🙋":"💬";
   const isFollowing=following?.includes(spit.handle);
 
   return(
@@ -395,17 +396,21 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
           ))}
         </div>
 
-        {/* Reactions */}
-        <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}} onClick={e=>e.stopPropagation()}>
-          {EMOJIS.map(emoji=>(
-            <button key={emoji} onClick={async()=>{
-              try{await sb.from("reactions").insert([{spit_id:spit.id,handle:currentUser.handle,emoji}]);}catch{}
-            }} style={{
-              background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",
-              borderRadius:20,padding:"6px 12px",cursor:"pointer",fontSize:16,color:"#fff",
-              transition:"all 0.15s",
-            }}>{emoji}</button>
-          ))}
+        {/* Heart reaction */}
+        <div style={{display:"flex",justifyContent:"center"}} onClick={e=>e.stopPropagation()}>
+          <button onClick={async(e)=>{
+            const x=e.clientX, y=e.clientY;
+            const id=Date.now();
+            setHearts(h=>[...h,{id,x,y}]);
+            setTimeout(()=>setHearts(h=>h.filter(hh=>hh.id!==id)),1000);
+            if(!liked[spit.id]){
+              setLiked(p=>({...p,[spit.id]:true}));
+              try{await sb.from("reactions").insert([{spit_id:spit.id,handle:currentUser.handle,emoji:"❤️"}]);}catch{}
+            }
+          }} style={{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:30,padding:"10px 24px",cursor:"pointer",fontSize:22,color:liked[spit.id]?"#ff4466":"rgba(255,255,255,0.6)",transition:"all 0.2s"}}>
+            {liked[spit.id]?"❤️":"♡"}
+          </button>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.25)",marginTop:8,textAlign:"center",position:"absolute",bottom:72}}>o hacé doble tap en cualquier lugar</div>
         </div>
       </div>
 
@@ -583,7 +588,7 @@ function SpitCard({spit,onClose,following,onFollowToggle,currentUser}){
   const preview=txt.length>110?txt.slice(0,110)+"…":txt;
   const total=Object.values(reactions).reduce((a,b)=>a+b,0);
   const left=MAX_REACTIONS-myR.length;
-  const icon=spit.role==="Anfitrión"?"🏠":spit.role==="Huésped"?"🧳":"💬";
+  const icon=spit.role==="Anfitrión"?"🏠":spit.role==="Huésped"?"🧳":spit.role==="Yo"?"🙋":"💬";
 
   return(
     <div style={{position:"absolute",bottom:16,left:"50%",transform:"translateX(-50%)",width:"min(460px,92vw)",background:"#fff",borderRadius:16,boxShadow:"0 8px 40px rgba(0,0,0,0.12)",zIndex:100,animation:"slideUp 0.25s ease",overflow:"hidden"}}>
@@ -655,7 +660,7 @@ function RecordModal({onClose,currentUser,onSaved}){
   const[saving,setSaving]=useState(false);
   const[error,setError]=useState("");
   const[effect,setEffect]=useState("normal");
-  const[spitRole,setSpitRole]=useState("");
+  const[spitRole,setSpitRole]=useState("Yo");
   const[emotion,setEmotion]=useState("");
   const[city,setCity]=useState("");
   const[previewing,setPreviewing]=useState(false);
@@ -706,7 +711,9 @@ function RecordModal({onClose,currentUser,onSaved}){
   };
 
   const stopPreview=()=>{
-    if(sourceRef.current){try{sourceRef.current.stop();}catch(e){}}
+    if(sourceRef.current){
+      try{sourceRef.current.stop();}catch(e){}
+    }
     if(audioCtxRef.current){try{audioCtxRef.current.close();}catch(e){}}
     sourceRef.current=null;
     audioCtxRef.current=null;
@@ -716,9 +723,24 @@ function RecordModal({onClose,currentUser,onSaved}){
   const preview=async()=>{
     stopPreview();
     try{
-      const blob=new Blob(chunksRef.current,{type:"audio/webm"});
+      const mimeType=chunksRef.current[0]?.type||"audio/webm";
+      const blob=new Blob(chunksRef.current,{type:mimeType});
+
+      // For Normal effect — use simple Audio element (works on iOS)
+      if(effect==="normal"){
+        const url=URL.createObjectURL(blob);
+        const audio=new Audio(url);
+        audio.onended=()=>{setPreviewing(false);URL.revokeObjectURL(url);};
+        audio.onerror=()=>{setPreviewing(false);setError("No se pudo previsualizar.");};
+        await audio.play();
+        sourceRef.current={stop:()=>{audio.pause();URL.revokeObjectURL(url);}};
+        setPreviewing(true);
+        return;
+      }
+
+      // For Ardilla/Sombra — use AudioContext with playbackRate
       const arrayBuf=await blob.arrayBuffer();
-      const ctx=new AudioContext();
+      const ctx=new (window.AudioContext||window.webkitAudioContext)();
       audioCtxRef.current=ctx;
       const decoded=await ctx.decodeAudioData(arrayBuf);
       const source=ctx.createBufferSource();
@@ -886,14 +908,17 @@ function RecordModal({onClose,currentUser,onSaved}){
 
             {/* Role */}
             <div style={{marginBottom:12}}>
-              <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>¿Desde qué rol escupís?</div>
+              <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Estoy hablando como...</div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {ROLES.map(r=>(
-                  <button key={r} onClick={()=>setSpitRole(r)} style={{padding:"8px 12px",borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",background:spitRole===r?RAUSCH:"#f7f7f7",border:spitRole===r?"none":"1.5px solid #e8e8e8",color:spitRole===r?"#fff":"#555",transition:"all 0.15s",textAlign:"left"}}>
-                    <div>{r}</div>
-                    {r==="Otro"&&<div style={{fontSize:10,opacity:0.8,fontWeight:400,marginTop:1}}>solo quiero escuchar o tengo algo que decir</div>}
-                  </button>
-                ))}
+                {ROLES.map(r=>{
+                  const active=spitRole===r;
+                  const color=ROLE_COLORS[r];
+                  return(
+                    <button key={r} onClick={()=>setSpitRole(r)} style={{padding:"8px 16px",borderRadius:20,fontSize:13,fontWeight:600,cursor:"pointer",background:active?color:"#f7f7f7",border:active?"none":"1.5px solid #e8e8e8",color:active?"#fff":"#555",transition:"all 0.15s"}}>
+                      {r}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -915,7 +940,7 @@ function RecordModal({onClose,currentUser,onSaved}){
               cursor:saving?"not-allowed":"pointer",
               boxShadow:"0 4px 16px rgba(255,56,92,0.3)",
             }}>
-              {saving?"Guardando...":"Publicar en el globo 🌍"}
+              {saving?"Guardando...":"Escupir 🔥"}
             </button>
             <div style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:8}}>
               {seconds}s · efecto: {EFFECTS[effect].label}
@@ -1475,7 +1500,7 @@ function App(){
               onClick={()=>{setListenStart(i);setShowListen(true);}}>
               {/* Role icon */}
               <div style={{width:40,height:40,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>
-                {s.role==="Anfitrión"?"🏠":s.role==="Huésped"?"🧳":"💬"}
+                {s.role==="Anfitrión"?"🏠":s.role==="Huésped"?"🧳":s.role==="Yo"?"🙋":"💬"}
               </div>
               {/* Info */}
               <div style={{flex:1,minWidth:0}}>
