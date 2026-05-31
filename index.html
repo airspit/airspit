@@ -123,11 +123,11 @@ function AuthScreen({onLogin}){
     if(!email||!password){setError("Completá email y contraseña.");return;}
     setLoading(true);
     if(mode==="register"){
-      if(!handle||!role){setError("Completá todos los campos.");setLoading(false);return;}
+      if(!handle){setError("Completá el nickname.");setLoading(false);return;}
       const h="@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,"");
-      const{error:err}=await dbRegister(email,password,h,role);
+      const{error:err}=await dbRegister(email,password,h,"");
       if(err){setError(err);setLoading(false);return;}
-      onLogin({email,handle:h,role});
+      onLogin({email,handle:h,role:""});
     }else{
       const{data,error:err}=await dbLogin(email,password);
       if(err){setError(err);setLoading(false);return;}
@@ -199,14 +199,6 @@ function AuthScreen({onLogin}){
               <input type="text" placeholder="usuario" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} style={{...iStyle,paddingLeft:28}}/>
             </div>
             <p style={{fontSize:11,color:"#bbb",marginTop:-8}}>Usá un nickname, nadie necesita saber quién sos.</p>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-              {ROLES.map(r=>(
-                <button key={r} onClick={()=>setRole(r)} style={{padding:"8px 14px",borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",background:role===r?RAUSCH:"#f7f7f7",border:role===r?"none":"1.5px solid #e8e8e8",color:role===r?"#fff":"#555",transition:"all 0.15s",textAlign:"left"}}>
-                  <div>{r}</div>
-                  {r==="Otro"&&<div style={{fontSize:10,opacity:0.8,fontWeight:400,marginTop:1}}>solo quiero escuchar o tengo algo que decir</div>}
-                </button>
-              ))}
-            </div>
           </>}
           <div style={{position:"relative"}}>
             <input type={showPass?"text":"password"} placeholder="Contraseña" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} style={{...iStyle,paddingRight:44}}/>
@@ -755,6 +747,7 @@ function RecordModal({onClose,currentUser,onSaved}){
   const[effect,setEffect]=useState("normal");
   const[previewing,setPreviewing]=useState(false);
   const[city,setCity]=useState("");
+  const[spitRole,setSpitRole]=useState("");
   const tRef=useRef(null);
   const mrRef=useRef(null);
   const chunksRef=useRef([]);
@@ -875,6 +868,7 @@ function RecordModal({onClose,currentUser,onSaved}){
 
   const save=async()=>{
     stopPreview();
+    if(!spitRole){setError("Elegí tu rol antes de publicar.");return;}
     setSaving(true);
     try{
       const mimeType=chunksRef.current[0]?.type||"audio/webm";
@@ -893,7 +887,7 @@ function RecordModal({onClose,currentUser,onSaved}){
         }catch{}
       }
       const lang=(navigator.language||"es").split("-")[0];
-      await dbInsertSpit({handle:currentUser.handle,role:currentUser.role,duration:seconds,lang,lat,lon,audio_url:audioUrl||"",transcript:""});
+      await dbInsertSpit({handle:currentUser.handle,role:spitRole,duration:seconds,lang,lat,lon,audio_url:audioUrl||"",transcript:""});
       setSaving(false);
       onSaved&&onSaved();
       onClose();
@@ -967,8 +961,18 @@ function RecordModal({onClose,currentUser,onSaved}){
               )}
             </button>
 
-            {/* City */}
-            <div style={{marginBottom:12}}>
+            {/* Role */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>¿Desde qué rol escupís?</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {ROLES.map(r=>(
+                  <button key={r} onClick={()=>setSpitRole(r)} style={{padding:"8px 12px",borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",background:spitRole===r?RAUSCH:"#f7f7f7",border:spitRole===r?"none":"1.5px solid #e8e8e8",color:spitRole===r?"#fff":"#555",transition:"all 0.15s",textAlign:"left"}}>
+                    <div>{r}</div>
+                    {r==="Otro"&&<div style={{fontSize:10,opacity:0.8,fontWeight:400,marginTop:1}}>solo quiero escuchar o tengo algo que decir</div>}
+                  </button>
+                ))}
+              </div>
+            </div>
               <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
                 ¿Dónde pasó esto? <span style={{color:"#bbb",fontWeight:400,textTransform:"none",letterSpacing:0}}>(opcional)</span>
               </div>
@@ -1226,14 +1230,13 @@ function CompleteProfile({email,authId,onDone}){
 
   const save=async()=>{
     if(!handle){setError("Elegí un nickname.");return;}
-    if(!role){setError("Seleccioná tu rol.");return;}
     const h="@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,"");
     if(h.length<4){setError("El nickname debe tener al menos 3 caracteres.");return;}
     setLoading(true);
-    const{error:err}=await sb.from("users").insert([{email,handle:h,role,auth_id:authId}]);
+    const{error:err}=await sb.from("users").insert([{email,handle:h,role:"",auth_id:authId}]);
     if(err){setError("Ese nickname ya está en uso.");setLoading(false);return;}
     setLoading(false);
-    onDone({email,handle:h,role});
+    onDone({email,handle:h,role:""});
   };
 
   return(
@@ -1244,14 +1247,6 @@ function CompleteProfile({email,authId,onDone}){
         <div style={{position:"relative"}}>
           <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"#aaa"}}>@</span>
           <input type="text" placeholder="tunickname" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} style={{...iStyle,paddingLeft:28}}/>
-        </div>
-        <div>
-          <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Soy</div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {["Anfitrión","Huésped","Property Manager"].map(r=>(
-              <button key={r} onClick={()=>setRole(r)} style={{padding:"8px 14px",borderRadius:8,fontSize:12,fontWeight:500,cursor:"pointer",background:role===r?RAUSCH:"#f7f7f7",border:role===r?"none":"1.5px solid #e8e8e8",color:role===r?"#fff":"#555",transition:"all 0.15s"}}>{r}</button>
-            ))}
-          </div>
         </div>
         {error&&<div style={{fontSize:12,color:RAUSCH,background:"#fff0f3",padding:"8px 12px",borderRadius:8}}>{error}</div>}
         <button onClick={save} disabled={loading} style={{width:"100%",padding:16,borderRadius:10,background:loading?"#ffb3c0":RAUSCH,border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"not-allowed":"pointer",boxShadow:"0 4px 16px rgba(255,56,92,0.3)"}}>
