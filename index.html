@@ -692,7 +692,7 @@ function RecordModal({onClose,currentUser,onSaved}){
       mr.start(1000); // collect data every 1 second
       mrRef.current=mr;
       setRecording(true);
-      tRef.current=setInterval(()=>setSeconds(s=>{if(s>=90){stop();return s;}return s+1;}),1000);
+      tRef.current=setInterval(()=>setSeconds(s=>{if(s>=60){stop();return s;}return s+1;}),1000);
     }catch(e){setError("No se pudo acceder al micrófono.");}
   };
 
@@ -843,14 +843,14 @@ function RecordModal({onClose,currentUser,onSaved}){
 
         {!done?(
           <div style={{textAlign:"center",paddingBottom:8}}>
-            <div style={{fontSize:60,fontWeight:700,letterSpacing:-2,color:recording?(90-seconds<10?RAUSCH:"#222"):"#ddd",marginBottom:4,transition:"color 0.3s"}}>
-              {String(Math.floor((90-seconds)/60)).padStart(2,"0")}:{String((90-seconds)%60).padStart(2,"0")}
+            <div style={{fontSize:60,fontWeight:700,letterSpacing:-2,color:recording?(60-seconds<10?RAUSCH:"#222"):"#ddd",marginBottom:4,transition:"color 0.3s"}}>
+              {String(Math.floor((60-seconds)/60)).padStart(2,"0")}:{String((60-seconds)%60).padStart(2,"0")}
             </div>
             <div style={{fontSize:11,color:"#bbb",marginBottom:4}}>
               {recording?<span style={{color:"#aaa"}}>grabando · {seconds}s</span>:"tiempo disponible"}
             </div>
             <div style={{height:4,background:"#f0f0f0",borderRadius:2,marginBottom:36,overflow:"hidden"}}>
-              <div style={{height:"100%",background:90-seconds<10?RAUSCH:"#22c55e",borderRadius:2,width:`${((90-seconds)/90)*100}%`,transition:"width 1s linear"}}/>
+              <div style={{height:"100%",background:60-seconds<10?RAUSCH:"#22c55e",borderRadius:2,width:`${((60-seconds)/90)*100}%`,transition:"width 1s linear"}}/>
             </div>
             <button onClick={recording?stop:start} style={{width:80,height:80,borderRadius:"50%",background:recording?RAUSCH:"#fff",border:recording?"none":"2px solid #e8e8e8",cursor:"pointer",fontSize:28,boxShadow:recording?`0 0 0 12px rgba(255,56,92,0.1),0 4px 20px rgba(255,56,92,0.4)`:"0 2px 12px rgba(0,0,0,0.1)",transition:"all 0.3s"}}>
               {recording?"⏹":"🎙"}
@@ -962,7 +962,7 @@ const TEXTS={
     title2:"Escupí",
     title3:"lo que sentís.",
     sub:"El lugar donde anfitriones y huéspedes dicen lo que realmente piensan. En audio. Sin filtros. Anónimo.",
-    time:"Hasta 90 segundos para decir cómo te sentís.",
+    time:"Hasta 60 segundos para decir cómo te sentís.",
     cta1:"Empezar a escupir 🎙",
     cta2:"Escuchar spits →",
     mapLabel:"🌍 Spits en todo el mundo",
@@ -973,7 +973,7 @@ const TEXTS={
       {emoji:"🎙",title:"Audio puro",desc:"Tu voz. Sin texto que se pueda malinterpretar. Sin edición. Solo lo que sentís en ese momento."},
       {emoji:"👤",title:"Anónimo de verdad",desc:"Usá un nickname. Nadie sabe quién sos. Hasta podés cambiar tu voz con el efecto ardilla o sombra."},
       {emoji:"🌍",title:"Global",desc:"Escuchá lo que viven otras personas en su ciudad. Anfitriones en Tokio, huéspedes en París."},
-      {emoji:"⏱",title:"90 segundos",desc:"Tiempo suficiente para decir lo que necesitás. Sin rodeos. Sin discursos. Solo lo esencial."},
+      {emoji:"⏱",title:"60 segundos",desc:"Tiempo suficiente para decir lo que necesitás. Sin rodeos. Sin discursos. Solo lo esencial."},
     ],
     forYouTitle:"Para vos si alguna vez...",
     forYou:[
@@ -984,7 +984,7 @@ const TEXTS={
       "😳 Te dijeron que el departamento estaba hermoso y te dejaron una calificación de solo 3 estrellas.",
     ],
     ctaTitle:"¿Listo para escupir?",
-    ctaSub:"Es gratis. Es anónimo. Son 90 segundos.",
+    ctaSub:"Es gratis. Es anónimo. Son 60 segundos.",
     ctaBtn:"Empezar ahora 🔥",
     enter:"Entrar",
     footer:"hospitalidad sin filtros",
@@ -995,7 +995,7 @@ const TEXTS={
     title2:"Spit",
     title3:"what you feel.",
     sub:"The place where hosts and guests say what they really think. In audio. Unfiltered. Anonymous.",
-    time:"Up to 90 seconds to say how you feel.",
+    time:"Up to 60 seconds to say how you feel.",
     cta1:"Start spitting 🎙",
     cta2:"Listen to spits →",
     mapLabel:"🌍 Spits from around the world",
@@ -1017,7 +1017,7 @@ const TEXTS={
       "😳 Left a 5-star review out of fear of the response",
     ],
     ctaTitle:"Ready to spit?",
-    ctaSub:"It's free. It's anonymous. It's 90 seconds.",
+    ctaSub:"It's free. It's anonymous. It's 60 seconds.",
     ctaBtn:"Start now 🔥",
     enter:"Log in",
     footer:"hospitality unfiltered",
