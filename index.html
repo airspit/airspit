@@ -6,7 +6,8 @@
 <title>AirSpit</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
@@ -266,174 +267,90 @@ function AuthScreen({onLogin}){
 }
 
 // ── Globe SVG ─────────────────────────────────────────────────────────────────
-// ── World Map SVG ─────────────────────────────────────────────────────────────
 
-// ── Canvas World Map ──────────────────────────────────────────────────────────
+// ── Leaflet Map ───────────────────────────────────────────────────────────────
 function GlobeSVG({spits,onSpitClick,activeSpit}){
-  const canvasRef=useRef(null);
-  const[worldData,setWorldData]=useState(null);
-  const[size,setSize]=useState({w:800,h:400});
-  const containerRef=useRef(null);
+  const mapId="airspit-map-"+Math.random().toString(36).slice(2,7);
+  const mapIdRef=useRef("airspit-map");
+  const mapRef=useRef(null);
+  const markersRef=useRef([]);
+  const cbRef=useRef(onSpitClick);
 
-  // Cluster spits
-  const CLUSTER_DIST=2.5;
-  const used=new Set();
-  const clusters=[];
-  spits.forEach((s,i)=>{
-    if(used.has(i))return;
-    const group=[s];
-    used.add(i);
-    spits.forEach((s2,j)=>{
-      if(used.has(j))return;
-      const dx=(s.x||50)-(s2.x||50),dy=(s.y||50)-(s2.y||50);
-      if(Math.sqrt(dx*dx+dy*dy)<CLUSTER_DIST){group.push(s2);used.add(j);}
-    });
-    clusters.push(group);
-  });
+  useEffect(()=>{ cbRef.current=onSpitClick; },[onSpitClick]);
 
-  // Load world data once
+  // Init map once
   useEffect(()=>{
-    fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json")
-      .then(r=>r.json())
-      .then(world=>{
-        const countries=topojson.feature(world,world.objects.countries);
-        const borders=topojson.mesh(world,world.objects.countries,(a,b)=>a!==b);
-        setWorldData({countries,borders});
-      }).catch(()=>{});
-  },[]);
+    const L=window.L;
+    if(!L||mapRef.current)return;
 
-  // Update canvas size
-  useEffect(()=>{
-    const el=containerRef.current;
-    if(!el)return;
-    const update=()=>setSize({w:el.clientWidth,h:el.clientHeight});
-    update();
-    const ro=new ResizeObserver(update);
-    ro.observe(el);
-    return()=>ro.disconnect();
-  },[]);
-
-  // Draw map on canvas
-  useEffect(()=>{
-    const canvas=canvasRef.current;
-    if(!canvas||!worldData)return;
-    const {w,h}=size;
-    canvas.width=w*window.devicePixelRatio;
-    canvas.height=h*window.devicePixelRatio;
-    canvas.style.width=w+"px";
-    canvas.style.height=h+"px";
-    const ctx=canvas.getContext("2d");
-    ctx.scale(window.devicePixelRatio,window.devicePixelRatio);
-
-    // Mercator-like projection
-    const proj=(lon,lat)=>{
-      const x=(lon+180)/360*w;
-      const latR=Math.max(-85,Math.min(85,lat))*Math.PI/180;
-      const y=h/2-w/(2*Math.PI)*Math.log(Math.tan(Math.PI/4+latR/2));
-      return[x,y];
-    };
-
-    // Background
-    ctx.fillStyle="#f0f4f8";
-    ctx.fillRect(0,0,w,h);
-
-    // Ocean tint
-    ctx.fillStyle="#dce8f5";
-    ctx.fillRect(0,0,w,h);
-
-    // Draw countries
-    const drawGeo=(geom,fill,stroke,lineWidth)=>{
-      const drawRing=(ring)=>{
-        ring.forEach(([lon,lat],i)=>{
-          const[x,y]=proj(lon,lat);
-          if(i===0)ctx.moveTo(x,y);
-          else ctx.lineTo(x,y);
-        });
-        ctx.closePath();
-      };
-      ctx.beginPath();
-      if(geom.type==="Polygon"){
-        geom.coordinates.forEach(drawRing);
-      } else if(geom.type==="MultiPolygon"){
-        geom.coordinates.forEach(poly=>poly.forEach(drawRing));
-      }
-      if(fill){ctx.fillStyle=fill;ctx.fill();}
-      if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lineWidth||0.5;ctx.stroke();}
-    };
-
-    // Fill countries
-    worldData.countries.features.forEach(f=>{
-      drawGeo(f.geometry,"#e8eef5",null);
+    const map=L.map(mapIdRef.current,{
+      center:[20,15],zoom:2,
+      minZoom:2,maxZoom:18,
+      zoomControl:true,
+      worldCopyJump:false,
     });
 
-    // Country borders
-    const drawMesh=(mesh,stroke,lw)=>{
-      ctx.beginPath();
-      const drawCoords=(coords)=>{
-        coords.forEach((ring,ri)=>{
-          ring.forEach(([lon,lat],i)=>{
-            const[x,y]=proj(lon,lat);
-            if(i===0)ctx.moveTo(x,y);
-            else ctx.lineTo(x,y);
-          });
-        });
-      };
-      if(mesh.type==="MultiLineString")mesh.coordinates.forEach(line=>{
-        line.forEach(([lon,lat],i)=>{
-          const[x,y]=proj(lon,lat);
-          if(i===0)ctx.moveTo(x,y);
-          else ctx.lineTo(x,y);
-        });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+      attribution:"© OpenStreetMap",
+      maxZoom:19,
+    }).addTo(map);
+
+    mapRef.current=map;
+    return()=>{
+      try{map.remove();}catch{}
+      mapRef.current=null;
+    };
+  },[]);
+
+  // Update markers when spits change
+  useEffect(()=>{
+    const L=window.L;
+    const map=mapRef.current;
+    if(!map||!L)return;
+
+    // Remove old markers
+    markersRef.current.forEach(m=>{try{m.remove();}catch{}});
+    markersRef.current=[];
+
+    // Group spits by proximity
+    const validSpits=spits.filter(s=>s.lat&&s.lon&&s.lat!==0&&s.lon!==0);
+
+    validSpits.forEach(spit=>{
+      const color=spit.role==="Anfitrión"?RAUSCH:spit.role==="Huésped"?BABU:ARCHES;
+      const isActive=activeSpit?.id===spit.id;
+      const size=isActive?18:12;
+
+      const icon=L.divIcon({
+        html:`<div style="
+          width:${size}px;height:${size}px;border-radius:50%;
+          background:${color};
+          border:2px solid #fff;
+          box-shadow:0 2px 8px rgba(0,0,0,0.3);
+          cursor:pointer;
+          transition:all 0.2s;
+        "></div>`,
+        className:"",
+        iconSize:[size,size],
+        iconAnchor:[size/2,size/2],
       });
-      ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke();
-    };
-    drawMesh(worldData.borders,"#c8d4e0",0.6);
 
-    // Coastline / outer border
-    worldData.countries.features.forEach(f=>{
-      drawGeo(f.geometry,null,"#b0c0d0",0.3);
+      const marker=L.marker([spit.lat,spit.lon],{icon});
+      marker.on("click",function(){
+        cbRef.current([spit]);
+      });
+      marker.addTo(map);
+      markersRef.current.push(marker);
     });
-
-    // Subtle grid
-    ctx.strokeStyle="rgba(180,200,220,0.3)";
-    ctx.lineWidth=0.5;
-    ctx.setLineDash([3,4]);
-    // Equator
-    ctx.beginPath();
-    const[x0,y0]=proj(-180,0);const[x1,y1]=proj(180,0);
-    ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();
-    ctx.setLineDash([]);
-
-  },[worldData,size]);
+  },[spits,activeSpit]);
 
   return(
-    <div ref={containerRef} style={{position:"relative",width:"100%",height:"100%",borderRadius:12,overflow:"hidden"}}>
-      <canvas ref={canvasRef} style={{position:"absolute",top:0,left:0,borderRadius:12}}/>
-
-      {/* Dots */}
-      {clusters.map((group,i)=>{
-        const cx=group.reduce((a,s)=>a+(s.x||50),0)/group.length;
-        const cy=group.reduce((a,s)=>a+(s.y||50),0)/group.length;
-        const isCluster=group.length>1;
-        const isActive=!isCluster&&activeSpit?.id===group[0].id;
-        return(
-          <button key={i} onClick={()=>onSpitClick(group)}
-            style={{position:"absolute",left:`${cx}%`,top:`${cy}%`,transform:"translate(-50%,-50%)",background:"none",border:"none",cursor:"pointer",padding:0,zIndex:10}}>
-            {isCluster?(
-              <div style={{width:28,height:28,borderRadius:"50%",background:RAUSCH,border:"2.5px solid #fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 12px rgba(255,56,92,0.45)",fontSize:11,fontWeight:700,color:"#fff",animation:"pulse 2.5s ease-in-out infinite"}}>
-                {group.length}
-              </div>
-            ):(
-              <div style={{width:isActive?16:11,height:isActive?16:11,borderRadius:"50%",background:roleColor(group[0].role),boxShadow:isActive?`0 0 0 4px rgba(0,0,0,0.1),0 0 16px rgba(0,0,0,0.2)`:`0 0 0 3px rgba(0,0,0,0.08),0 2px 8px rgba(0,0,0,0.15)`,transition:"all 0.3s ease",animation:"pulse 2.5s ease-in-out infinite"}}/>
-            )}
-          </button>
-        );
-      })}
+    <div style={{width:"100%",height:"100%",borderRadius:12,overflow:"hidden",position:"relative"}}>
+      <div id={mapIdRef.current} style={{width:"100%",height:"100%"}}/>
+      <style>{`.leaflet-container{font-family:-apple-system,sans-serif}`}</style>
     </div>
   );
 }
 
-// ── Player ────────────────────────────────────────────────────────────────────
 // ── Listen Mode ───────────────────────────────────────────────────────────────
 function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowToggle}){
   const[idx,setIdx]=useState(startIndex||0);
@@ -1554,7 +1471,7 @@ function App(){
       </header>
       <main style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 0 160px",position:"relative"}}>
         <div style={{background:"#fff",borderRadius:20,boxShadow:"0 4px 24px rgba(0,0,0,0.06)",padding:20,width:"min(800px,96vw)"}}>
-          <div style={{width:"100%",height:"min(400px,50vw)",minHeight:220,position:"relative"}}>
+          <div style={{width:"100%",height:"min(480px,55vw)",minHeight:300,position:"relative"}}>
             <GlobeSVG spits={spits} onSpitClick={handleSpitClick} activeSpit={activeSpit}/>
           </div>
         </div>
