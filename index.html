@@ -27,6 +27,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 const {useState,useEffect,useRef}=React;
 const RAUSCH='#FF385C';
 const BABU='#00A699';
+const VERIFIED=['@airspit','@arturoblas'];
+const VerifiedBadge=()=>(
+  <svg width="16" height="16" viewBox="0 0 16 16" style={{display:"inline-block",verticalAlign:"middle",marginLeft:3,flexShrink:0}}>
+    <defs>
+      <linearGradient id="vg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#4F9EF8"/>
+        <stop offset="100%" stopColor="#7B5CF0"/>
+      </linearGradient>
+    </defs>
+    <circle cx="8" cy="8" r="8" fill="url(#vg)"/>
+    <polyline points="4.5,8.5 7,11 11.5,5.5" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 const ARCHES='#FC642D';
 
 const roleColor=(role)=>{
@@ -364,7 +377,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
             {roleIcon_(spit.role)}
           </div>
           <div>
-            <div style={{fontSize:16,fontWeight:700,color:"#fff"}}>{spit.handle}</div>
+            <div style={{fontSize:16,fontWeight:700,color:"#fff"}}>{spit.handle}{VERIFIED.includes(spit.handle)&&<VerifiedBadge/>}</div>
             <div style={{fontSize:12,color:"rgba(255,255,255,0.4)",marginTop:2}}>{spit.role} · {spit.duration}s</div>
           </div>
           {spit.handle!==currentUser?.handle&&(
@@ -600,6 +613,7 @@ function SpitCard({spit,onClose,following,onFollowToggle,currentUser}){
             <div>
               <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 <span style={{fontSize:14,fontWeight:700,color:"#222"}}>{spit.handle||"@anónimo"}</span>
+                  {VERIFIED.includes(spit.handle)&&<VerifiedBadge/>}
                 {spit.handle&&spit.handle!==currentUser?.handle&&onFollowToggle&&(
                   <button onClick={()=>onFollowToggle(spit.handle)} style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",background:isFollowing?"#fff":RAUSCH,border:`1.5px solid ${isFollowing?"#e0e0e0":RAUSCH}`,color:isFollowing?"#888":"#fff",transition:"all 0.2s"}}>
                     {isFollowing?"Siguiendo":"+ Seguir"}
@@ -1506,6 +1520,7 @@ function App(){
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                   <span style={{fontSize:13,fontWeight:700,color:"#222"}}>{s.handle}</span>
+                  {VERIFIED.includes(s.handle)&&<VerifiedBadge/>}
                   <span style={{fontSize:12}}>{getFlag(s)}</span>
                   {s.emotion&&<span style={{fontSize:12}}>{s.emotion}</span>}
                 </div>
