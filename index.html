@@ -3,9 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>AirSpit</title><link rel="icon" type="image/x-icon" href="favicon.ico"/>
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png"/>
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png"/>
+<title>AirSpit</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -72,13 +70,13 @@ async function dbRegister(email,password,handle,role){
 async function dbLogin(email,password){
   const{data:a,error:e}=await sb.auth.signInWithPassword({email,password});
   if(e)return{error:"Email o contraseña incorrectos."};
-  const{data:u}=await sb.from("users").select("*").eq("email",email).single();
+  const{data:u}=await sb.from("users").select("handle,role,roles,auth_id,email").eq("email",email).single();
   return{data:u};
 }
 async function dbGetSession(){
   const{data:{session}}=await sb.auth.getSession();
   if(!session)return null;
-  const{data}=await sb.from("users").select("*").eq("auth_id",session.user.id).single();
+  const{data}=await sb.from("users").select("handle,role,roles,auth_id,email").eq("auth_id",session.user.id).single();
   return data||null;
 }
 async function dbGetSpits(){
@@ -1252,7 +1250,7 @@ function App(){
     });
     const{data:{subscription}}=sb.auth.onAuthStateChange(async(event,session)=>{
       if(event==="SIGNED_IN"&&session){
-        const{data:profile}=await sb.from("users").select("*").eq("auth_id",session.user.id).single();
+        const{data:profile}=await sb.from("users").select("handle,role,roles,auth_id,email").eq("auth_id",session.user.id).single();
         if(profile){
           setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role]});
         }else{
