@@ -827,8 +827,9 @@ function RecordModal({onClose,currentUser,onSaved}){
   const[done,setDone]=useState(false);
   const[saving,setSaving]=useState(false);
   const[error,setError]=useState("");
-  const[effect,setEffect]=useState("normal"); // normal | ardilla | sombra
+  const[effect,setEffect]=useState("normal");
   const[previewing,setPreviewing]=useState(false);
+  const[city,setCity]=useState("");
   const tRef=useRef(null);
   const mrRef=useRef(null);
   const chunksRef=useRef([]);
@@ -959,10 +960,13 @@ function RecordModal({onClose,currentUser,onSaved}){
       const fn=`${(currentUser.handle||"anon").replace("@","")}_${Date.now()}.${ext}`;
       const audioUrl=await dbUploadAudio(blob,fn);
       let lat=0,lon=0;
-      try{
-        const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000}));
-        lat=pos.coords.latitude;lon=pos.coords.longitude;
-      }catch{}
+      if(city.trim()){
+        try{
+          const geo=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`);
+          const geoData=await geo.json();
+          if(geoData[0]){lat=parseFloat(geoData[0].lat);lon=parseFloat(geoData[0].lon);}
+        }catch{}
+      }
       const lang=(navigator.language||"es").split("-")[0];
       await dbInsertSpit({handle:currentUser.handle,role:currentUser.role,duration:seconds,lang,lat,lon,audio_url:audioUrl||"",transcript:""});
       setSaving(false);
@@ -1037,6 +1041,16 @@ function RecordModal({onClose,currentUser,onSaved}){
                 <><span style={{fontSize:16}}>▶</span> Escuchar antes de publicar</>
               )}
             </button>
+
+            {/* City */}
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
+                ¿Dónde pasó esto? <span style={{color:"#bbb",fontWeight:400,textTransform:"none",letterSpacing:0}}>(opcional)</span>
+              </div>
+              <input type="text" placeholder="Ciudad, país..." value={city} onChange={e=>setCity(e.target.value)}
+                style={{width:"100%",padding:"10px 14px",background:"#f7f7f7",border:"1.5px solid #ebebeb",borderRadius:10,fontSize:14,color:"#222",outline:"none",boxSizing:"border-box"}}/>
+              <p style={{fontSize:11,color:"#bbb",marginTop:4}}>Aparecerá como un punto en el mapa de esa ciudad.</p>
+            </div>
 
             {/* Publish */}
             <button onClick={save} disabled={saving} style={{
