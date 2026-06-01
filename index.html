@@ -1443,6 +1443,10 @@ function App(){
   const[newHandle,setNewHandle]=useState("");
   const[handleError,setHandleError]=useState("");
   const[followerCount,setFollowerCount]=useState(0);
+  const[showSearch,setShowSearch]=useState(false);
+  const[searchQuery,setSearchQuery]=useState("");
+  const[searchResults,setSearchResults]=useState([]);
+  const[searchLoading,setSearchLoading]=useState(false);
   const[notifications,setNotifications]=useState([]);
   const[showNotifs,setShowNotifs]=useState(false);
 
@@ -1737,8 +1741,8 @@ function App(){
         </div>
         <div style={{display:"flex",alignItems:"center",gap:4}}>
           {activeTab==="global"&&(
-            <button style={{background:"none",border:"none",padding:6,cursor:"pointer",display:"flex",alignItems:"center"}}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <button onClick={()=>{setShowSearch(p=>!p);setSearchQuery("");setSearchResults([]);}} style={{background:"none",border:"none",padding:6,cursor:"pointer",display:"flex",alignItems:"center"}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={showSearch?RAUSCH:"#aaa"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="7"/>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
@@ -1762,6 +1766,53 @@ function App(){
         {/* GLOBAL TAB */}
         {activeTab==="global"&&(
           <div>
+            {/* Search bar */}
+            {showSearch&&(
+              <div style={{marginBottom:12}}>
+                <div style={{position:"relative"}}>
+                  <svg style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <input autoFocus type="text" placeholder="Buscar por nickname..." value={searchQuery}
+                    onChange={async e=>{
+                      const q=e.target.value;
+                      setSearchQuery(q);
+                      if(q.length<2){setSearchResults([]);return;}
+                      setSearchLoading(true);
+                      const handle=q.startsWith("@")?q:"@"+q;
+                      const{data}=await sb.from("users").select("handle,country,bio").ilike("handle",`%${handle.replace("@","")}%`).limit(8);
+                      setSearchResults(data||[]);
+                      setSearchLoading(false);
+                    }}
+                    style={{width:"100%",padding:"10px 14px 10px 36px",borderRadius:12,border:"1.5px solid #ebebeb",fontSize:14,color:"#222",background:"#fff",outline:"none",boxSizing:"border-box",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}
+                  />
+                </div>
+                {searchLoading&&<div style={{fontSize:12,color:"#bbb",textAlign:"center",padding:12}}>Buscando...</div>}
+                {!searchLoading&&searchQuery.length>=2&&searchResults.length===0&&(
+                  <div style={{fontSize:12,color:"#bbb",textAlign:"center",padding:12}}>No se encontraron usuarios.</div>
+                )}
+                {searchResults.length>0&&(
+                  <div style={{background:"#fff",borderRadius:12,boxShadow:"0 2px 12px rgba(0,0,0,0.08)",overflow:"hidden",marginTop:4}}>
+                    {searchResults.map(u=>(
+                      <div key={u.handle} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:"1px solid #f5f5f5"}}>
+                        <div style={{width:40,height:40,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🙋</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6}}>
+                            <span style={{fontSize:14,fontWeight:700,color:"#222"}}>{u.handle}</span>
+                            {VERIFIED.includes(u.handle)&&<VerifiedBadge/>}
+                            {u.country&&<span style={{fontSize:13}}>{countryFlag(u.country)}</span>}
+                          </div>
+                          {u.bio&&<div style={{fontSize:16,marginTop:2,letterSpacing:2}}>{u.bio}</div>}
+                        </div>
+                        <button onClick={()=>toggleFollow(u.handle)} style={{background:following.includes(u.handle)?"none":RAUSCH,border:following.includes(u.handle)?"1.5px solid #ebebeb":"none",borderRadius:20,padding:"6px 14px",fontSize:12,fontWeight:600,color:following.includes(u.handle)?"#888":"#fff",cursor:"pointer",flexShrink:0}}>
+                          {following.includes(u.handle)?"Siguiendo":"Seguir"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div style={{background:"#fff",borderRadius:16,padding:"20px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:16}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                 <div>
