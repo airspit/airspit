@@ -1460,6 +1460,112 @@ function CompleteProfile({email,authId,onDone}){
   );
 }
 
+function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
+  const[profile,setProfile]=useState(null);
+  const[spits,setSpits]=useState([]);
+  const[followerCount,setFollowerCount]=useState(0);
+  const[followingCount,setFollowingCount]=useState(0);
+  const[loading,setLoading]=useState(true);
+  const CATS={verdad:"🔥 Verdad",bronca:"😤 Bronca",sentimiento:"❤️ Sentimiento",historia:"😂 Historia",momento:"⚡ Momento"};
+
+  useEffect(()=>{
+    const load=async()=>{
+      setLoading(true);
+      const[{data:u},{data:s},{count:followers},{count:followingC}]=await Promise.all([
+        sb.from("users").select("handle,country,bio").eq("handle",handle).single(),
+        sb.from("spits").select("*").eq("handle",handle).order("created_at",{ascending:false}),
+        sb.from("follows").select("id",{count:"exact"}).eq("following",handle),
+        sb.from("follows").select("id",{count:"exact"}).eq("follower",handle),
+      ]);
+      setProfile(u);
+      setSpits(s||[]);
+      setFollowerCount(followers||0);
+      setFollowingCount(followingC||0);
+      setLoading(false);
+    };
+    load();
+  },[handle]);
+
+  const isFollowing=following?.includes(handle);
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"#f7f7f7",zIndex:200,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",overflowY:"auto"}}>
+      <header style={{background:"#fff",padding:"0 16px",height:56,display:"flex",alignItems:"center",gap:12,borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
+        <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:RAUSCH,fontWeight:600,fontSize:14,display:"flex",alignItems:"center",gap:4}}>← Volver</button>
+      </header>
+
+      {loading?(
+        <div style={{display:"flex",justifyContent:"center",padding:48}}>
+          <div style={{width:28,height:28,border:`3px solid ${RAUSCH}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+        </div>
+      ):(
+        <div style={{maxWidth:600,margin:"0 auto",padding:"16px 16px 80px"}}>
+          {/* Profile card */}
+          <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:16}}>
+            <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
+              <div style={{width:56,height:56,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🙋</div>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  <span style={{fontSize:18,fontWeight:700,color:"#222"}}>{handle}</span>
+                  {VERIFIED.includes(handle)&&<VerifiedBadge/>}
+                  {profile?.country&&<span style={{fontSize:16}}>{countryFlag(profile.country)}</span>}
+                </div>
+                {profile?.bio&&<div style={{fontSize:24,marginTop:4,letterSpacing:3}}>{profile.bio}</div>}
+              </div>
+            </div>
+            <div style={{display:"flex",gap:24,paddingTop:12,borderTop:"1px solid #f5f5f5",alignItems:"center"}}>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:20,fontWeight:700,color:"#222"}}>{spits.length}</div>
+                <div style={{fontSize:11,color:"#aaa"}}>Spits</div>
+              </div>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:20,fontWeight:700,color:"#222"}}>{followerCount}</div>
+                <div style={{fontSize:11,color:"#aaa"}}>Seguidores</div>
+              </div>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:20,fontWeight:700,color:"#222"}}>{followingCount}</div>
+                <div style={{fontSize:11,color:"#aaa"}}>Siguiendo</div>
+              </div>
+              {handle!==currentUser?.handle&&(
+                <button onClick={()=>onFollowToggle(handle)} style={{
+                  marginLeft:"auto",padding:"8px 20px",borderRadius:20,fontSize:13,fontWeight:600,cursor:"pointer",
+                  background:isFollowing?"#fff":RAUSCH,
+                  border:isFollowing?"1.5px solid #ebebeb":"none",
+                  color:isFollowing?"#888":"#fff",
+                  flexShrink:0,
+                }}>
+                  {isFollowing?"Siguiendo":"+ Seguir"}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Spits */}
+          <div style={{fontSize:12,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10,paddingLeft:4}}>
+            Spits ({spits.length})
+          </div>
+          {spits.length===0?(
+            <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>Todavía no escupió nada.</div>
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {spits.map(s=>(
+                <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                    {s.category&&<span style={{fontSize:11,color:RAUSCH,fontWeight:600}}>{CATS[s.category]}</span>}
+                    {s.emotion&&<span style={{fontSize:14}}>{s.emotion}</span>}
+                    <span style={{fontSize:11,color:"#bbb",marginLeft:"auto"}}>{s.duration}s</span>
+                  </div>
+                  <Player duration={s.duration} audioUrl={s.audio_url}/>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App(){
   const[user,setUser]=useState(null);
   const[checking,setChecking]=useState(true);
@@ -1486,6 +1592,7 @@ function App(){
   const[handleError,setHandleError]=useState("");
   const[followerCount,setFollowerCount]=useState(0);
   const[showSearch,setShowSearch]=useState(false);
+  const[viewProfile,setViewProfile]=useState(null);
   const[searchQuery,setSearchQuery]=useState("");
   const[searchResults,setSearchResults]=useState([]);
   const[searchLoading,setSearchLoading]=useState(false);
@@ -1602,6 +1709,7 @@ function App(){
     </div>
   );
 
+  if(viewProfile)return <PublicProfile handle={viewProfile} currentUser={user} following={following} onFollowToggle={toggleFollow} onClose={()=>setViewProfile(null)}/>;
   if(showTerms)return <TermsPage onClose={()=>setShowTerms(false)}/>;
   if(showPrivacy)return <PrivacyPage onClose={()=>setShowPrivacy(false)}/>;
   if(showCommunity)return <CommunityPage onClose={()=>setShowCommunity(false)}/>;
@@ -1748,7 +1856,7 @@ function App(){
               <div style={{width:40,height:40,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{"🙋"}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                  <span style={{fontSize:13,fontWeight:700,color:"#222"}}>{s.handle}</span>
+                  <span onClick={e=>{e.stopPropagation();setViewProfile(s.handle);}} style={{fontSize:13,fontWeight:700,color:"#222",cursor:"pointer"}}>{s.handle}</span>
                   {VERIFIED.includes(s.handle)&&<VerifiedBadge/>}
                   <span style={{fontSize:12}}>{getFlag(s)}</span>
                   {s.emotion&&<span style={{fontSize:12}}>{s.emotion}</span>}
