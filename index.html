@@ -851,7 +851,7 @@ function RecordModal({onClose,currentUser,onSaved}){
 
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center",backdropFilter:"blur(4px)"}}>
-      <div style={{background:"#fff",borderRadius:"24px 24px 0 0",padding:"8px 28px 40px",width:"100%",maxWidth:480,boxShadow:"0 -8px 40px rgba(0,0,0,0.12)",animation:"sheetUp 0.3s ease"}}>
+      <div style={{background:"#fff",borderRadius:"24px 24px 0 0",padding:"8px 28px 40px",width:"100%",maxWidth:480,boxShadow:"0 -8px 40px rgba(0,0,0,0.12)",animation:"sheetUp 0.3s ease",maxHeight:"92vh",overflowY:"auto"}}>
         <div style={{width:40,height:4,background:"#e0e0e0",borderRadius:2,margin:"12px auto 24px"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
           <div>
@@ -927,44 +927,18 @@ function RecordModal({onClose,currentUser,onSaved}){
               </div>
             </div>
 
-            {/* Role */}
-            <div style={{marginBottom:12}}>
-              <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Estoy hablando como...</div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {ROLES.map(r=>{
-                  const active=spitRole===r;
-                  const color=ROLE_COLORS[r];
-                  return(
-                    <button key={r} onClick={()=>setSpitRole(r)} style={{padding:"8px 16px",borderRadius:20,fontSize:13,fontWeight:600,cursor:"pointer",background:active?color:"#f7f7f7",border:active?"none":"1.5px solid #e8e8e8",color:active?"#fff":"#555",transition:"all 0.15s"}}>
-                      {r}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* City */}
-            <div style={{marginBottom:12}}>
-              <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>
-                ¿Dónde pasó esto? <span style={{color:"#bbb",fontWeight:400,textTransform:"none",letterSpacing:0}}>(opcional)</span>
-              </div>
-              <input type="text" placeholder="Ciudad, país..." value={city} onChange={e=>setCity(e.target.value)}
-                style={{width:"100%",padding:"10px 14px",background:"#f7f7f7",border:"1.5px solid #ebebeb",borderRadius:10,fontSize:14,color:"#222",outline:"none",boxSizing:"border-box"}}/>
-              <p style={{fontSize:11,color:"#bbb",marginTop:4}}>Aparecerá como un punto en el mapa de esa ciudad.</p>
-            </div>
-
             {/* Thread picker */}
             <div style={{marginBottom:14}}>
               <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>¿Es parte de un hilo?</div>
               <div style={{display:"flex",gap:8,marginBottom:showThreadPicker?12:0}}>
-                <button onClick={()=>{setThreadId(null);setThreadOrder(1);setShowThreadPicker(false);}} style={{flex:1,padding:"10px 8px",borderRadius:12,cursor:"pointer",background:!threadId?"#fff0f3":"#f7f7f7",border:`1.5px solid ${!threadId?RAUSCH:"#e8e8e8"}`,fontSize:13,fontWeight:600,color:!threadId?RAUSCH:"#888"}}>
+                <button onClick={()=>{setThreadId(null);setThreadOrder(1);setShowThreadPicker(false);}} style={{flex:1,padding:"10px 8px",borderRadius:12,cursor:"pointer",background:(!threadId&&!showThreadPicker)?"#fff0f3":"#f7f7f7",border:`1.5px solid ${(!threadId&&!showThreadPicker)?RAUSCH:"#e8e8e8"}`,fontSize:13,fontWeight:600,color:(!threadId&&!showThreadPicker)?RAUSCH:"#888"}}>
                   🎙️ Spit nuevo
                 </button>
                 <button onClick={async()=>{
                   setShowThreadPicker(true);
                   const{data}=await sb.from("spits").select("*").eq("handle",currentUser.handle).order("created_at",{ascending:false}).limit(20);
                   setMySpitsForThread(data||[]);
-                }} style={{flex:1,padding:"10px 8px",borderRadius:12,cursor:"pointer",background:threadId?"#fff0f3":"#f7f7f7",border:`1.5px solid ${threadId?RAUSCH:"#e8e8e8"}`,fontSize:13,fontWeight:600,color:threadId?RAUSCH:"#888"}}>
+                }} style={{flex:1,padding:"10px 8px",borderRadius:12,cursor:"pointer",background:(threadId||showThreadPicker)?"#fff0f3":"#f7f7f7",border:`1.5px solid ${(threadId||showThreadPicker)?RAUSCH:"#e8e8e8"}`,fontSize:13,fontWeight:600,color:(threadId||showThreadPicker)?RAUSCH:"#888"}}>
                   🧵 Continuar hilo
                 </button>
               </div>
