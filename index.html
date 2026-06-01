@@ -1659,7 +1659,7 @@ function MundialCard({onSpit}){
       </div>
 
       {/* CTA button */}
-      <button onClick={onSpit} style={{
+      <button onClick={e=>{e.stopPropagation();onSpit();}} style={{
         background:"#fff",border:"none",borderRadius:10,
         padding:"10px 20px",fontSize:13,fontWeight:700,
         color:"#3a5a10",cursor:"pointer",
