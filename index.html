@@ -481,20 +481,22 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
       </div>
 
       {/* Like button */}
-      <div style={{display:"flex",justifyContent:"center",paddingBottom:48,zIndex:10}} onClick={e=>e.stopPropagation()}>
-        <button onClick={e=>doLike(e.clientX,e.clientY)} style={{
-          background:liked[spit.id]?`${theme.accent}33`:"rgba(255,255,255,0.08)",
-          border:`1.5px solid ${liked[spit.id]?theme.accent:"rgba(255,255,255,0.15)"}`,
-          borderRadius:32,padding:"12px 32px",cursor:"pointer",
-          display:"flex",alignItems:"center",gap:10,
-          backdropFilter:"blur(8px)",transition:"all 0.2s",
-        }}>
-          <span style={{fontSize:22}}>{liked[spit.id]?"❤️":"🤍"}</span>
-          <span style={{fontSize:13,fontWeight:600,color:liked[spit.id]?theme.accent:"rgba(255,255,255,0.5)"}}>
-            {liked[spit.id]?"Te llegó":"Me llegó"}
-          </span>
+      <div style={{display:"flex",justifyContent:"center",paddingBottom:36,zIndex:10}} onClick={e=>e.stopPropagation()}>
+        <button onClick={e=>{
+          e.stopPropagation();
+          if(liked[spit.id]){
+            setLiked(p=>({...p,[spit.id]:false}));
+          } else {
+            doLike(e.clientX,e.clientY);
+          }
+        }} style={{background:"none",border:"none",cursor:"pointer",padding:12,display:"flex",alignItems:"center",justifyContent:"center",transition:"transform 0.15s"}}
+          onMouseOver={e=>e.currentTarget.style.transform="scale(1.1)"}
+          onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill={liked[spit.id]?theme.accent:"none"} stroke={liked[spit.id]?theme.accent:"rgba(255,255,255,0.5)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+            style={{filter:liked[spit.id]?`drop-shadow(0 0 8px ${theme.accent}88)`:"none",transition:"all 0.2s"}}>
+            <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>
+          </svg>
         </button>
-        <div style={{position:"absolute",bottom:100,fontSize:11,color:"rgba(255,255,255,0.15)"}}>doble tap para likear</div>
       </div>
 
       {/* Flying hearts */}
