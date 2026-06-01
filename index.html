@@ -1696,6 +1696,7 @@ function App(){
   const[followerCount,setFollowerCount]=useState(0);
   const[showSearch,setShowSearch]=useState(false);
   const[viewProfile,setViewProfile]=useState(null);
+  const[mundialFilter,setMundialFilter]=useState(false);
   const[searchQuery,setSearchQuery]=useState("");
   const[searchResults,setSearchResults]=useState([]);
   const[searchLoading,setSearchLoading]=useState(false);
@@ -2062,6 +2063,24 @@ function App(){
               </div>
             )}
             <MundialCard onSpit={()=>setShowRecord(true)}/>
+
+            {/* Mundial filter toggle */}
+            <div style={{display:"flex",gap:8,marginBottom:12}}>
+              <button onClick={()=>setMundialFilter(false)} style={{
+                flex:1,padding:"8px 0",borderRadius:10,border:"none",cursor:"pointer",fontSize:13,fontWeight:600,
+                background:!mundialFilter?"#222":"#f0f0f0",
+                color:!mundialFilter?"#fff":"#888",
+                transition:"all 0.2s",
+              }}>Todos los spits</button>
+              <button onClick={()=>setMundialFilter(true)} style={{
+                flex:1,padding:"8px 0",borderRadius:10,border:"none",cursor:"pointer",fontSize:13,fontWeight:600,
+                background:mundialFilter?"#aed956":"#f0f0f0",
+                color:mundialFilter?"#1a1a1a":"#888",
+                display:"flex",alignItems:"center",justifyContent:"center",gap:6,
+                transition:"all 0.2s",
+              }}>⚽ Mundial 2026</button>
+            </div>
+
             <div style={{background:"#fff",borderRadius:16,padding:"20px",boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:16}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                 <div>
@@ -2091,7 +2110,7 @@ function App(){
               )}
             </div>
             <div style={{fontSize:12,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10,paddingLeft:4}}>Últimos spits</div>
-            {renderFeed(spits,"Nadie ha escupido todavía. ¡Sé el primero!")}
+            {renderFeed(mundialFilter?spits.filter(s=>s.is_mundial):spits,mundialFilter?"Todavía no hay spits del Mundial. ¡Sé el primero!":"Nadie ha escupido todavía. ¡Sé el primero!")}
           </div>
         )}
 
