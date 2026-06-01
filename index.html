@@ -1530,11 +1530,11 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
                 <button onClick={()=>onFollowToggle(handle)} style={{
                   marginLeft:"auto",padding:"8px 20px",borderRadius:20,fontSize:13,fontWeight:600,cursor:"pointer",
                   background:isFollowing?"#fff":RAUSCH,
-                  border:isFollowing?"1.5px solid #ebebeb":"none",
-                  color:isFollowing?"#888":"#fff",
+                  border:isFollowing?`1.5px solid ${RAUSCH}`:"none",
+                  color:isFollowing?RAUSCH:"#fff",
                   flexShrink:0,
                 }}>
-                  {isFollowing?"Siguiendo":"+ Seguir"}
+                  {isFollowing?"Dejar de seguir":"+ Seguir"}
                 </button>
               )}
             </div>
