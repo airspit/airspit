@@ -79,8 +79,8 @@ async function dbGetSession(){
   return data||null;
 }
 async function dbGetSpits(){
-  const{data}=await sb.from("spits").select("*").order("created_at",{ascending:false});
-  return(data||[]).map(s=>({...s,reactions:{}}));
+  const{data}=await sb.from("spits").select("*, users(country)").order("created_at",{ascending:false});
+  return(data||[]).map(s=>({...s,country:s.users?.country||"",reactions:{}}));
 }
 async function dbInsertSpit(spit){
   const{data,error}=await sb.from("spits").insert([spit]).select().single();
@@ -1634,14 +1634,8 @@ function App(){
 
   // Country flag from lat/lon (approximate)
   const getFlag=(s)=>{
-    if(!s.lat||!s.lon)return "🌍";
-    if(s.lat>14&&s.lat<33&&s.lon>-120&&s.lon<-85)return "🇲🇽";
-    if(s.lat>-55&&s.lat<-21&&s.lon>-75&&s.lon<-53)return "🇦🇷";
-    if(s.lat>-33&&s.lat<5&&s.lon>-74&&s.lon<-34)return "🇧🇷";
-    if(s.lat>35&&s.lat<72&&s.lon>-10&&s.lon<40)return "🇪🇺";
-    if(s.lat>24&&s.lat<49&&s.lon>-125&&s.lon<-65)return "🇺🇸";
-    if(s.lat>-47&&s.lat<-17&&s.lon>-76&&s.lon<-66)return "🇨🇱";
-    return "🌍";
+    if(s.country)return countryFlag(s.country);
+    return "";
   };
 
   // SVG icons
