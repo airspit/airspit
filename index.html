@@ -1634,32 +1634,92 @@ function App(){
   );
 
   // Tab content renderers
-  const renderFeed=(feedSpits,emptyMsg)=>(
-    <div style={{display:"flex",flexDirection:"column",gap:8}}>
-      {feedSpits.length===0?(
-        <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:14}}>{emptyMsg}</div>
-      ):feedSpits.map((s,i)=>(
-        <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}
-          onClick={()=>{setListenStart(i);setShowListen(true);}}>
-          <div style={{width:40,height:40,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>
-            {"🙋"}
-          </div>
+  const CATS={verdad:"🔥 Verdad",bronca:"😤 Bronca",sentimiento:"❤️ Sentimiento",historia:"😂 Historia",momento:"⚡ Momento"};
+
+  const groupSpits=(feedSpits)=>{
+    const groups=[];
+    const seen=new Set();
+    feedSpits.forEach((s,i)=>{
+      if(s.thread_id&&!seen.has(s.thread_id)){
+        const thread=feedSpits.filter(x=>x.thread_id===s.thread_id).sort((a,b)=>a.thread_order-b.thread_order);
+        thread.forEach(x=>seen.add(x.thread_id));
+        groups.push({type:"thread",id:s.thread_id,spits:thread,firstIndex:i});
+      } else if(!s.thread_id&&!seen.has(s.id)){
+        seen.add(s.id);
+        groups.push({type:"single",id:s.id,spit:s,index:i});
+      }
+    });
+    return groups;
+  };
+
+  const ThreadCard=({thread,firstIndex})=>{
+    const[expanded,setExpanded]=useState(false);
+    const first=thread[0];
+    return(
+      <div style={{background:"#fff",borderRadius:14,boxShadow:"0 1px 6px rgba(0,0,0,0.05)",overflow:"hidden"}}>
+        {/* Thread header */}
+        <div style={{padding:"12px 16px",display:"flex",alignItems:"center",gap:10,borderBottom:expanded?"1px solid #f5f5f5":"none"}}>
+          <div style={{width:36,height:36,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🙋</div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-              <span style={{fontSize:13,fontWeight:700,color:"#222"}}>{s.handle}</span>
-              {VERIFIED.includes(s.handle)&&<VerifiedBadge/>}
-              <span style={{fontSize:12}}>{getFlag(s)}</span>
-              {s.emotion&&<span style={{fontSize:12}}>{s.emotion}</span>}
+              <span style={{fontSize:13,fontWeight:700,color:"#222"}}>{first.handle}</span>
+              {VERIFIED.includes(first.handle)&&<VerifiedBadge/>}
+              <span style={{fontSize:12}}>{getFlag(first)}</span>
+              <span style={{fontSize:10,background:"#fff0f3",color:RAUSCH,padding:"1px 7px",borderRadius:10,fontWeight:700}}>🧵 {thread.length} partes</span>
             </div>
-            <div style={{fontSize:11,color:"#aaa"}}>{s.duration}s{s.audio_url?" · 🔊":""}{s.category&&({verdad:"🔥 Verdad",bronca:"😤 Bronca",sentimiento:"❤️ Sentimiento",historia:"😂 Historia",momento:"⚡ Momento"})[s.category]?" · "+({verdad:"🔥 Verdad",bronca:"😤 Bronca",sentimiento:"❤️ Sentimiento",historia:"😂 Historia",momento:"⚡ Momento"})[s.category]:""}</div>
+            <div style={{fontSize:11,color:"#aaa"}}>{first.category?CATS[first.category]:""}</div>
           </div>
-          <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,56,92,0.08)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-            <span style={{color:RAUSCH,fontSize:14}}>▶</span>
-          </div>
+          <button onClick={()=>setExpanded(p=>!p)} style={{background:"none",border:"1px solid #ebebeb",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#888",cursor:"pointer",fontWeight:600,flexShrink:0}}>
+            {expanded?"Cerrar":"Ver hilo"}
+          </button>
         </div>
-      ))}
-    </div>
-  );
+        {/* Thread parts */}
+        {expanded&&thread.map((s,idx)=>(
+          <div key={s.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:idx<thread.length-1?"1px solid #f9f9f9":"none",cursor:"pointer",background:"#fafafa"}}
+            onClick={()=>{setListenStart(firstIndex+idx);setShowListen(true);}}>
+            <div style={{width:24,height:24,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:RAUSCH,flexShrink:0}}>{idx+1}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:11,color:"#888"}}>{s.duration}s{s.audio_url?" · 🔊":""}{s.emotion?" · "+s.emotion:""}</div>
+            </div>
+            <div style={{width:28,height:28,borderRadius:"50%",background:"rgba(255,56,92,0.08)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <span style={{color:RAUSCH,fontSize:12}}>▶</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderFeed=(feedSpits,emptyMsg)=>{
+    if(feedSpits.length===0)return <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:14}}>{emptyMsg}</div>;
+    const groups=groupSpits(feedSpits);
+    return(
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {groups.map(g=>{
+          if(g.type==="thread")return <ThreadCard key={g.id} thread={g.spits} firstIndex={g.firstIndex}/>;
+          const s=g.spit;const i=g.index;
+          return(
+            <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"12px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}
+              onClick={()=>{setListenStart(i);setShowListen(true);}}>
+              <div style={{width:40,height:40,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{"🙋"}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                  <span style={{fontSize:13,fontWeight:700,color:"#222"}}>{s.handle}</span>
+                  {VERIFIED.includes(s.handle)&&<VerifiedBadge/>}
+                  <span style={{fontSize:12}}>{getFlag(s)}</span>
+                  {s.emotion&&<span style={{fontSize:12}}>{s.emotion}</span>}
+                </div>
+                <div style={{fontSize:11,color:"#aaa"}}>{s.duration}s{s.audio_url?" · 🔊":""}{s.category&&CATS[s.category]?" · "+CATS[s.category]:""}</div>
+              </div>
+              <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,56,92,0.08)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{color:RAUSCH,fontSize:14}}>▶</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const followingSpits=spits.filter(s=>following.includes(s.handle));
   const likedSpits=spits.filter(s=>s.liked);
