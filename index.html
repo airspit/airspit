@@ -79,8 +79,8 @@ async function dbGetSession(){
   return data||null;
 }
 async function dbGetSpits(){
-  const{data}=await sb.from("spits").select("*, users(country)").order("created_at",{ascending:false});
-  return(data||[]).map(s=>({...s,country:s.users?.country||"",reactions:{}}));
+  const{data}=await sb.from("spits").select("*").order("created_at",{ascending:false});
+  return(data||[]).map(s=>({...s,reactions:{}}));
 }
 async function dbInsertSpit(spit){
   const{data,error}=await sb.from("spits").insert([spit]).select().single();
