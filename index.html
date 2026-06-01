@@ -948,8 +948,13 @@ function RecordModal({onClose,currentUser,onSaved}){
                   ):mySpitsForThread.map(s=>(
                     <div key={s.id} onClick={async()=>{
                       const{data}=await sb.from("spits").select("thread_order").eq("thread_id",s.thread_id||s.id).order("thread_order",{ascending:false}).limit(1);
+                        const rootId=s.thread_id||s.id;
                       const nextOrder=data&&data[0]?data[0].thread_order+1:2;
-                      setThreadId(s.thread_id||s.id);
+                      // Make sure the root spit also has thread_id pointing to itself
+                      if(!s.thread_id){
+                        await sb.from("spits").update({thread_id:s.id,thread_order:1}).eq("id",s.id);
+                      }
+                      setThreadId(rootId);
                       setThreadOrder(nextOrder);
                       setShowThreadPicker(false);
                     }} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,cursor:"pointer",marginBottom:6,background:"#fff",border:"1px solid #f0f0f0"}}>
