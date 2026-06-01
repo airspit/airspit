@@ -679,6 +679,10 @@ function RecordModal({onClose,currentUser,onSaved}){
   const[spitRole,setSpitRole]=useState("Yo");
   const[emotion,setEmotion]=useState("");
   const[category,setCategory]=useState("");
+  const[threadId,setThreadId]=useState(null);
+  const[threadOrder,setThreadOrder]=useState(1);
+  const[showThreadPicker,setShowThreadPicker]=useState(false);
+  const[mySpitsForThread,setMySpitsForThread]=useState([]);
   const[city,setCity]=useState("");
   const[previewing,setPreviewing]=useState(false);
   const tRef=useRef(null);
@@ -836,7 +840,7 @@ function RecordModal({onClose,currentUser,onSaved}){
         }catch{}
       }
       const lang=(navigator.language||"es").split("-")[0];
-      await dbInsertSpit({handle:currentUser.handle,role:spitRole||"Otro",emotion,category,duration:seconds,lang,lat,lon,audio_url:audioUrl||"",transcript:""});
+      await dbInsertSpit({handle:currentUser.handle,role:spitRole||"Otro",emotion,category,thread_id:threadId,thread_order:threadOrder,duration:seconds,lang,lat,lon,audio_url:audioUrl||"",transcript:""});
       setSaving(false);
       onSaved&&onSaved();
       onClose();
@@ -947,6 +951,51 @@ function RecordModal({onClose,currentUser,onSaved}){
               <input type="text" placeholder="Ciudad, país..." value={city} onChange={e=>setCity(e.target.value)}
                 style={{width:"100%",padding:"10px 14px",background:"#f7f7f7",border:"1.5px solid #ebebeb",borderRadius:10,fontSize:14,color:"#222",outline:"none",boxSizing:"border-box"}}/>
               <p style={{fontSize:11,color:"#bbb",marginTop:4}}>Aparecerá como un punto en el mapa de esa ciudad.</p>
+            </div>
+
+            {/* Thread picker */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#555",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>¿Es parte de un hilo?</div>
+              <div style={{display:"flex",gap:8,marginBottom:showThreadPicker?12:0}}>
+                <button onClick={()=>{setThreadId(null);setThreadOrder(1);setShowThreadPicker(false);}} style={{flex:1,padding:"10px 8px",borderRadius:12,cursor:"pointer",background:!threadId?"#fff0f3":"#f7f7f7",border:`1.5px solid ${!threadId?RAUSCH:"#e8e8e8"}`,fontSize:13,fontWeight:600,color:!threadId?RAUSCH:"#888"}}>
+                  🎙️ Spit nuevo
+                </button>
+                <button onClick={async()=>{
+                  setShowThreadPicker(true);
+                  const{data}=await sb.from("spits").select("*").eq("handle",currentUser.handle).order("created_at",{ascending:false}).limit(20);
+                  setMySpitsForThread(data||[]);
+                }} style={{flex:1,padding:"10px 8px",borderRadius:12,cursor:"pointer",background:threadId?"#fff0f3":"#f7f7f7",border:`1.5px solid ${threadId?RAUSCH:"#e8e8e8"}`,fontSize:13,fontWeight:600,color:threadId?RAUSCH:"#888"}}>
+                  🧵 Continuar hilo
+                </button>
+              </div>
+              {showThreadPicker&&!threadId&&(
+                <div style={{background:"#f9f9f9",borderRadius:12,padding:12,maxHeight:180,overflowY:"auto"}}>
+                  {mySpitsForThread.length===0?(
+                    <div style={{fontSize:12,color:"#bbb",textAlign:"center",padding:12}}>No tenés spits anteriores.</div>
+                  ):mySpitsForThread.map(s=>(
+                    <div key={s.id} onClick={async()=>{
+                      const{data}=await sb.from("spits").select("thread_order").eq("thread_id",s.thread_id||s.id).order("thread_order",{ascending:false}).limit(1);
+                      const nextOrder=data&&data[0]?data[0].thread_order+1:2;
+                      setThreadId(s.thread_id||s.id);
+                      setThreadOrder(nextOrder);
+                      setShowThreadPicker(false);
+                    }} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,cursor:"pointer",marginBottom:6,background:"#fff",border:"1px solid #f0f0f0"}}>
+                      <div style={{fontSize:18}}>🎙️</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,color:"#555",fontWeight:600}}>{s.duration}s · {s.category||"sin categoría"}</div>
+                        <div style={{fontSize:11,color:"#bbb"}}>{new Date(s.created_at).toLocaleDateString("es-AR")}</div>
+                      </div>
+                      <span style={{fontSize:11,color:RAUSCH,fontWeight:600}}>+ Agregar</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {threadId&&(
+                <div style={{fontSize:12,color:RAUSCH,padding:"6px 12px",background:"#fff0f3",borderRadius:8}}>
+                  ✓ Se va a agregar al hilo · parte {threadOrder}
+                  <button onClick={()=>{setThreadId(null);setThreadOrder(1);setShowThreadPicker(false);}} style={{background:"none",border:"none",color:"#aaa",fontSize:11,cursor:"pointer",marginLeft:8}}>Cancelar</button>
+                </div>
+              )}
             </div>
 
             {/* Category */}
