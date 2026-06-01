@@ -971,8 +971,8 @@ function RecordModal({onClose,currentUser,onSaved}){
             <div style={{marginBottom:14}}>
               <button onClick={()=>setIsMundial(p=>!p)} style={{
                 width:"100%",padding:"10px 14px",borderRadius:12,cursor:"pointer",
-                background:isMundial?"linear-gradient(135deg,#1a3d1a,#2d5a2d)":"#f7f7f7",
-                border:`1.5px solid ${isMundial?"#2d5a2d":"#e8e8e8"}`,
+                background:isMundial?"linear-gradient(135deg,#8ab83e,#aed956)":"#f7f7f7",
+                border:`1.5px solid ${isMundial?"#aed956":"#e8e8e8"}`,
                 display:"flex",alignItems:"center",gap:10,
                 transition:"all 0.2s",
               }}>
@@ -1614,7 +1614,7 @@ function MundialCard({onSpit}){
 
   return(
     <div style={{
-      background:"linear-gradient(135deg, #1a3d1a 0%, #2d5a2d 50%, #1f4a1f 100%)",
+      background:"linear-gradient(135deg, #8ab83e 0%, #aed956 50%, #96c445 100%)",
       borderRadius:16,
       padding:"20px 20px 16px",
       marginBottom:16,
@@ -1656,7 +1656,7 @@ function MundialCard({onSpit}){
       <button onClick={onSpit} style={{
         background:"#fff",border:"none",borderRadius:10,
         padding:"10px 20px",fontSize:13,fontWeight:700,
-        color:"#1a3d1a",cursor:"pointer",
+        color:"#3a5a10",cursor:"pointer",
         display:"flex",alignItems:"center",gap:8,
         boxShadow:"0 2px 8px rgba(0,0,0,0.15)",
         transition:"transform 0.15s",
