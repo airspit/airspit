@@ -1416,6 +1416,7 @@ function App(){
   const[editingHandle,setEditingHandle]=useState(false);
   const[newHandle,setNewHandle]=useState("");
   const[handleError,setHandleError]=useState("");
+  const[followerCount,setFollowerCount]=useState(0);
 
   const handleSpitClick=(group)=>{
     if(!group||group.length===0)return;
@@ -1455,6 +1456,7 @@ function App(){
   useEffect(()=>{
     if(!user)return;
     loadSpits();
+    if(user.handle)loadFollowing(user.handle);
     const ch=sb.channel("spits").on("postgres_changes",{event:"INSERT",schema:"public",table:"spits"},p=>{
       const s=p.new;
       const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
@@ -1483,7 +1485,22 @@ function App(){
   };
 
   const logout=async()=>{await sb.auth.signOut();setUser(null);};
-  const toggleFollow=h=>setFollowing(p=>p.includes(h)?p.filter(x=>x!==h):[...p,h]);
+  const loadFollowing=async(handle)=>{
+    const{data}=await sb.from("follows").select("following").eq("follower",handle);
+    if(data)setFollowing(data.map(f=>f.following));
+  };
+
+  const toggleFollow=async(h)=>{
+    if(!user||!user.handle)return;
+    const isFollowing=following.includes(h);
+    if(isFollowing){
+      await sb.from("follows").delete().eq("follower",user.handle).eq("following",h);
+      setFollowing(p=>p.filter(x=>x!==h));
+    }else{
+      await sb.from("follows").insert({follower:user.handle,following:h});
+      setFollowing(p=>[...p,h]);
+    }
+  };
 
   if(checking)return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff"}}>
@@ -1698,7 +1715,7 @@ function App(){
                   <div style={{fontSize:11,color:"#aaa"}}>Spits</div>
                 </div>
                 <div style={{textAlign:"center"}}>
-                  <div style={{fontSize:20,fontWeight:700,color:"#222"}}>0</div>
+                  <div style={{fontSize:20,fontWeight:700,color:"#222"}}>{followerCount}</div>
                   <div style={{fontSize:11,color:"#aaa"}}>Seguidores</div>
                 </div>
                 <div style={{textAlign:"center"}}>
@@ -1838,7 +1855,7 @@ function App(){
         <button onClick={()=>setActiveTab("liked")} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
           <IconHeart active={activeTab==="liked"}/>
         </button>
-        <button onClick={()=>{setActiveTab("profile");if(user)sb.from("spits").select("*").eq("handle",user.handle).order("created_at",{ascending:false}).then(({data})=>setMySpits(data||[]));}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
+        <button onClick={()=>{setActiveTab("profile");if(user){sb.from("spits").select("*").eq("handle",user.handle).order("created_at",{ascending:false}).then(({data})=>setMySpits(data||[]));sb.from("follows").select("id",{count:"exact"}).eq("following",user.handle).then(({count})=>setFollowerCount(count||0));}}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
           <IconProfile active={activeTab==="profile"}/>
         </button>
       </nav>
