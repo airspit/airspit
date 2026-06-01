@@ -71,13 +71,13 @@ async function dbRegister(email,password,handle,role){
 async function dbLogin(email,password){
   const{data:a,error:e}=await sb.auth.signInWithPassword({email,password});
   if(e)return{error:"Email o contraseña incorrectos."};
-  const{data:u}=await sb.from("users").select("handle,role,roles,auth_id,email").eq("email",email).single();
+  const{data:u}=await sb.from("users").select("handle,role,roles,auth_id,email,country,bio").eq("email",email).single();
   return{data:u};
 }
 async function dbGetSession(){
   const{data:{session}}=await sb.auth.getSession();
   if(!session)return null;
-  const{data}=await sb.from("users").select("handle,role,roles,auth_id,email,country").eq("auth_id",session.user.id).single();
+  const{data}=await sb.from("users").select("handle,role,roles,auth_id,email,country,bio").eq("auth_id",session.user.id).single();
   return data||null;
 }
 async function dbGetSpits(){
@@ -1410,6 +1410,9 @@ function App(){
   const[showPrivacy,setShowPrivacy]=useState(false);
   const[showCommunity,setShowCommunity]=useState(false);
   const[activeTab,setActiveTab]=useState("global");
+  const[editingBio,setEditingBio]=useState(false);
+  const[bioText,setBioText]=useState("");
+  const[bioError,setBioError]=useState("");
 
   const handleSpitClick=(group)=>{
     if(!group||group.length===0)return;
@@ -1420,12 +1423,12 @@ function App(){
   // Restore session
   useEffect(()=>{
     dbGetSession().then(profile=>{
-      if(profile)setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role],country:profile.country||""});
+      if(profile)setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role],country:profile.country||"",bio:profile.bio||""});
       setChecking(false);
     });
     const{data:{subscription}}=sb.auth.onAuthStateChange(async(event,session)=>{
       if(event==="SIGNED_IN"&&session){
-        const{data:profile}=await sb.from("users").select("handle,role,roles,auth_id,email,country").eq("auth_id",session.user.id).single();
+        const{data:profile}=await sb.from("users").select("handle,role,roles,auth_id,email,country,bio").eq("auth_id",session.user.id).single();
         if(profile){
           setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role]});
         }else{
@@ -1686,7 +1689,7 @@ function App(){
                   <div style={{fontSize:12,color:"#aaa",marginTop:2}}>{user.email}</div>
                 </div>
               </div>
-              <div style={{display:"flex",gap:24,paddingTop:12,borderTop:"1px solid #f5f5f5"}}>
+              <div style={{display:"flex",gap:24,paddingTop:12,borderTop:"1px solid #f5f5f5",marginBottom:user.bio||editingBio?12:0}}>
                 <div style={{textAlign:"center"}}>
                   <div style={{fontSize:20,fontWeight:700,color:"#222"}}>{mySpits.length}</div>
                   <div style={{fontSize:11,color:"#aaa"}}>Spits</div>
@@ -1700,6 +1703,43 @@ function App(){
                   <div style={{fontSize:11,color:"#aaa"}}>Siguiendo</div>
                 </div>
               </div>
+              {/* Bio */}
+              {editingBio?(
+                <div style={{paddingTop:12,borderTop:"1px solid #f5f5f5"}}>
+                  <div style={{fontSize:12,color:"#aaa",marginBottom:8}}>Solo emojis · máximo 10</div>
+                  <input
+                    type="text"
+                    value={bioText}
+                    onChange={e=>{
+                      const val=e.target.value;
+                      const hasText=/[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ#@.,!?¿¡\s]/.test(val);
+                      if(hasText){setBioError("Solo se permiten emojis.");return;}
+                      const segs=[...new Intl.Segmenter(undefined,{granularity:"grapheme"}).segment(val)];
+                      if(segs.length>10){setBioError("Máximo 10 emojis.");return;}
+                      setBioError("");setBioText(val);
+                    }}
+                    placeholder="😤🔥❤️..."
+                    style={{width:"100%",padding:"12px 14px",borderRadius:10,border:"1.5px solid #ebebeb",fontSize:28,color:"#222",background:"#f9f9f9",outline:"none",boxSizing:"border-box",letterSpacing:4}}
+                  />
+                  {bioError&&<div style={{fontSize:11,color:RAUSCH,marginTop:4}}>{bioError}</div>}
+                  <div style={{fontSize:11,color:"#bbb",marginTop:4,textAlign:"right"}}>{[...new Intl.Segmenter(undefined,{granularity:"grapheme"}).segment(bioText)].length}/10 emojis</div>
+                  <div style={{display:"flex",gap:8,marginTop:8}}>
+                    <button onClick={async()=>{await sb.from("users").update({bio:bioText}).eq("handle",user.handle);setUser(p=>({...p,bio:bioText}));setEditingBio(false);}} style={{flex:1,padding:"10px",borderRadius:10,background:RAUSCH,border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Guardar</button>
+                    <button onClick={()=>{setEditingBio(false);setBioText(user.bio||"");setBioError("");}} style={{flex:1,padding:"10px",borderRadius:10,background:"#f5f5f5",border:"none",color:"#555",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+                  </div>
+                </div>
+              ):(
+                <div style={{paddingTop:user.bio?12:0,borderTop:user.bio?"1px solid #f5f5f5":"none"}}>
+                  {user.bio?(
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                      <p style={{fontSize:28,margin:0,letterSpacing:4}}>{user.bio}</p>
+                      <button onClick={()=>{setBioText(user.bio||"");setEditingBio(true);}} style={{background:"none",border:"none",fontSize:11,color:"#bbb",cursor:"pointer",flexShrink:0,textDecoration:"underline"}}>Editar</button>
+                    </div>
+                  ):(
+                    <button onClick={()=>setEditingBio(true)} style={{background:"none",border:"1.5px dashed #e0e0e0",borderRadius:10,padding:"10px 16px",width:"100%",fontSize:13,color:"#bbb",cursor:"pointer",marginTop:8}}>+ Agregar emojis</button>
+                  )}
+                </div>
+              )}
             </div>
             <div style={{fontSize:12,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10,paddingLeft:4}}>Mis spits ({mySpits.length})</div>
             {mySpits.length===0?(
