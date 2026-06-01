@@ -880,7 +880,7 @@ function RecordModal({onClose,currentUser,onSaved}){
         }catch{}
       }
       const lang=(navigator.language||"es").split("-")[0];
-      await dbInsertSpit({handle:currentUser.handle,role:"",emotion,category,thread_id:threadId,thread_order:threadOrder,duration:seconds,lang,lat,lon,audio_url:audioUrl||"",transcript:""});
+      await dbInsertSpit({handle:currentUser.handle,role:"",emotion,category,thread_id:threadId,thread_order:threadOrder,duration:seconds,lang,lat,lon,audio_url:audioUrl||"",transcript:"",country:currentUser.country||""});
       setSaving(false);
       onSaved&&onSaved();
       onClose();
@@ -1519,13 +1519,14 @@ function App(){
     return()=>subscription.unsubscribe();
   },[]);
 
-  const loadSpits=()=>dbGetSpits().then(data=>{
+  const loadSpits=async()=>{
+    const data=await dbGetSpits();
     const positioned=data.map(s=>({...s,
       x:s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20,
       y:s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20
     }));
     setSpits(positioned);
-  });
+  };
 
   useEffect(()=>{
     if(!user)return;
@@ -2128,7 +2129,7 @@ function App(){
         <button onClick={()=>setActiveTab("liked")} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
           <IconHeart active={activeTab==="liked"}/>
         </button>
-        <button onClick={()=>{setActiveTab("profile");if(user){sb.from("spits").select("*").eq("handle",user.handle).order("created_at",{ascending:false}).then(({data})=>setMySpits(data||[]));sb.from("follows").select("id",{count:"exact"}).eq("following",user.handle).then(({count})=>setFollowerCount(count||0));setBioText(user.bio||"");sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at").eq("handle",user.handle).single().then(({data})=>{if(data)setUser(p=>({...p,bio:data.bio||"",country:data.country||"",handle_changed_at:data.handle_changed_at||null}));});}}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
+        <button onClick={()=>{setActiveTab("profile");if(user){sb.from("spits").select("*").eq("handle",user.handle).order("created_at",{ascending:false}).then(({data})=>setMySpits(data||[]));sb.from("follows").select("id",{count:"exact"}).eq("following",user.handle).then(({count})=>setFollowerCount(count||0));sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at").eq("handle",user.handle).single().then(({data})=>{if(data){setUser(p=>({...p,bio:data.bio||"",country:data.country||"",handle_changed_at:data.handle_changed_at||null}));setBioText(data.bio||"");}});}}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
           <IconProfile active={activeTab==="profile"}/>
         </button>
       </nav>
