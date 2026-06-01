@@ -328,6 +328,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
       if(!liked[spit.id]){
         setLiked(p=>({...p,[spit.id]:true}));
         try{await sb.from("reactions").insert([{spit_id:spit.id,handle:currentUser.handle,emoji:"❤️"}]);}catch{}
+        if(spit.handle&&spit.handle!==currentUser.handle)try{await sb.from("notifications").insert({to_handle:spit.handle,from_handle:currentUser.handle,type:"like",spit_id:spit.id});}catch{}
       }
     }
     setLastTap(now);
@@ -1417,6 +1418,8 @@ function App(){
   const[newHandle,setNewHandle]=useState("");
   const[handleError,setHandleError]=useState("");
   const[followerCount,setFollowerCount]=useState(0);
+  const[notifications,setNotifications]=useState([]);
+  const[showNotifs,setShowNotifs]=useState(false);
 
   const handleSpitClick=(group)=>{
     if(!group||group.length===0)return;
@@ -1456,14 +1459,18 @@ function App(){
   useEffect(()=>{
     if(!user)return;
     loadSpits();
-    if(user.handle)loadFollowing(user.handle);
+    if(user.handle){loadFollowing(user.handle);loadNotifications(user.handle);}
     const ch=sb.channel("spits").on("postgres_changes",{event:"INSERT",schema:"public",table:"spits"},p=>{
       const s=p.new;
       const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
       const y=s.lat!=null?((90-s.lat)/180)*80+10:Math.random()*60+20;
       setSpits(prev=>[{...s,x,y,reactions:{}},...prev]);
     }).subscribe();
-    return()=>sb.removeChannel(ch);
+    const chNotif=sb.channel("notifications_"+user.handle)
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications",filter:`to_handle=eq.${user.handle}`},p=>{
+        setNotifications(prev=>[p.new,...prev]);
+      }).subscribe();
+    return()=>{sb.removeChannel(ch);sb.removeChannel(chNotif);};
   },[user]);
 
   // Load my spits when profile opens
@@ -1490,6 +1497,16 @@ function App(){
     if(data)setFollowing(data.map(f=>f.following));
   };
 
+  const loadNotifications=async(handle)=>{
+    const{data}=await sb.from("notifications").select("*").eq("to_handle",handle).order("created_at",{ascending:false}).limit(30);
+    if(data)setNotifications(data);
+  };
+
+  const markAllRead=async()=>{
+    await sb.from("notifications").update({read:true}).eq("to_handle",user.handle).eq("read",false);
+    setNotifications(p=>p.map(n=>({...n,read:true})));
+  };
+
   const toggleFollow=async(h)=>{
     if(!user||!user.handle)return;
     const isFollowing=following.includes(h);
@@ -1499,6 +1516,8 @@ function App(){
     }else{
       await sb.from("follows").insert({follower:user.handle,following:h});
       setFollowing(p=>[...p,h]);
+      // Notify the followed user
+      if(h!==user.handle)try{await sb.from("notifications").insert({to_handle:h,from_handle:user.handle,type:"follow"});}catch{}
     }
   };
 
@@ -1631,14 +1650,25 @@ function App(){
         <div style={{fontSize:18,fontWeight:800,letterSpacing:-0.5,cursor:"pointer"}} onClick={()=>setShowLanding(true)}>
           <span style={{color:RAUSCH}}>air</span>spit
         </div>
-        {activeTab==="global"&&(
-          <button style={{background:"none",border:"none",padding:6,cursor:"pointer",display:"flex",alignItems:"center"}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="7"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          {activeTab==="global"&&(
+            <button style={{background:"none",border:"none",padding:6,cursor:"pointer",display:"flex",alignItems:"center"}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </button>
+          )}
+          <button onClick={()=>{setShowNotifs(true);markAllRead();}} style={{background:"none",border:"none",padding:6,cursor:"pointer",position:"relative",display:"flex",alignItems:"center"}}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
+            {notifications.filter(n=>!n.read).length>0&&(
+              <span style={{position:"absolute",top:4,right:4,width:8,height:8,background:RAUSCH,borderRadius:"50%",border:"2px solid #fff"}}/>
+            )}
           </button>
-        )}
+        </div>
       </header>
 
       {/* Tab content */}
@@ -1859,6 +1889,34 @@ function App(){
           <IconProfile active={activeTab==="profile"}/>
         </button>
       </nav>
+
+      {/* Notifications panel */}
+      {showNotifs&&(
+        <div style={{position:"fixed",inset:0,zIndex:200,display:"flex",flexDirection:"column"}} onClick={()=>setShowNotifs(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{position:"absolute",top:56,right:0,width:320,maxHeight:"70vh",overflowY:"auto",background:"#fff",boxShadow:"0 8px 32px rgba(0,0,0,0.15)",borderRadius:"0 0 0 16px"}}>
+            <div style={{padding:"16px 20px",borderBottom:"1px solid #f0f0f0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:15,fontWeight:700,color:"#222"}}>Notificaciones</span>
+              <button onClick={()=>setShowNotifs(false)} style={{background:"none",border:"none",fontSize:18,color:"#aaa",cursor:"pointer"}}>×</button>
+            </div>
+            {notifications.length===0?(
+              <div style={{padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>Sin notificaciones todavía.</div>
+            ):notifications.map(n=>(
+              <div key={n.id} style={{padding:"14px 20px",borderBottom:"1px solid #f9f9f9",background:n.read?"#fff":"#fff8f9",display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:36,height:36,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
+                  {n.type==="like"?"❤️":"👤"}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,color:"#222",fontWeight:500}}>
+                    <span style={{color:RAUSCH,fontWeight:700}}>{n.from_handle}</span>
+                    {n.type==="like"?" likeó tu spit":" empezó a seguirte"}
+                  </div>
+                  <div style={{fontSize:11,color:"#bbb",marginTop:2}}>{new Date(n.created_at).toLocaleDateString("es-AR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* SpitCard modal */}
       {activeSpit&&(
