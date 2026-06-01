@@ -489,7 +489,7 @@ function Player({duration,audioUrl}){
     const a=new Audio();
     a.preload="metadata";
     a.src=audioUrl;
-    a.onloadedmetadata=()=>{if(a.duration&&!isNaN(a.duration))setRealDur(Math.round(a.duration));setLoaded(true);};
+    a.onloadedmetadata=()=>{if(a.duration&&!isNaN(a.duration)&&isFinite(a.duration))setRealDur(Math.round(a.duration));setLoaded(true);};
     a.oncanplay=()=>setLoaded(true);
     a.onended=()=>{setPlaying(false);setCur(0);};
     a.onerror=()=>{console.error("Audio error",a.error);setLoaded(false);};
@@ -512,7 +512,7 @@ function Player({duration,audioUrl}){
   },[playing,speed]);
 
   const skip=d=>{const a=audioRef.current;const t=Math.min(realDur,Math.max(0,cur+d));setCur(t);if(a)a.currentTime=t;};
-  const fmt=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+  const fmt=s=>(!s||!isFinite(s)||isNaN(s))?"0:00":`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
   const pct=realDur>0?(cur/realDur)*100:0;
   const seek=e=>{const r=barRef.current.getBoundingClientRect();const t=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*realDur;setCur(t);if(audioRef.current)audioRef.current.currentTime=t;};
   const canPlay=!audioUrl||(audioUrl&&loaded);
@@ -1954,21 +1954,66 @@ function App(){
             <div style={{fontSize:12,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10,paddingLeft:4}}>Mis spits ({mySpits.length})</div>
             {mySpits.length===0?(
               <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>Todavía no escupiste nada.</div>
-            ):(
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {mySpits.map(s=>(
-                  <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                      <div style={{fontSize:11,color:RAUSCH,fontWeight:600}}>{s.duration}s{s.audio_url?" · 🔊":""}</div>
-                      <button onClick={()=>{if(window.confirm("¿Seguro que querés borrar este spit? Esta acción no se puede deshacer."))deleteSpit(s.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#ddd",padding:"2px 6px",borderRadius:6}}
-                        onMouseOver={e=>e.currentTarget.style.color=RAUSCH}
-                        onMouseOut={e=>e.currentTarget.style.color="#ddd"}>🗑</button>
-                    </div>
-                    <Player duration={s.duration} audioUrl={s.audio_url}/>
-                  </div>
-                ))}
-              </div>
-            )}
+            ):(()=>{
+              const CATS_P={verdad:"🔥 Verdad",bronca:"😤 Bronca",sentimiento:"❤️ Sentimiento",historia:"😂 Historia",momento:"⚡ Momento"};
+              const seen=new Set();
+              const groups=[];
+              mySpits.forEach(s=>{
+                if(s.thread_id&&!seen.has(s.thread_id)){
+                  const thread=mySpits.filter(x=>x.thread_id===s.thread_id).sort((a,b)=>a.thread_order-b.thread_order);
+                  thread.forEach(x=>seen.add(x.thread_id));
+                  groups.push({type:"thread",id:s.thread_id,spits:thread});
+                }else if(!s.thread_id&&!seen.has(s.id)){
+                  seen.add(s.id);
+                  groups.push({type:"single",id:s.id,spit:s});
+                }
+              });
+              return(
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {groups.map(g=>{
+                    if(g.type==="thread"){
+                      return(
+                        <div key={g.id} style={{background:"#fff",borderRadius:14,boxShadow:"0 1px 6px rgba(0,0,0,0.05)",overflow:"hidden"}}>
+                          <div style={{padding:"12px 16px",borderBottom:"1px solid #f5f5f5",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontSize:10,background:"#fff0f3",color:RAUSCH,padding:"2px 8px",borderRadius:10,fontWeight:700}}>🧵 {g.spits.length} partes</span>
+                              <span style={{fontSize:11,color:"#aaa"}}>{g.spits[0].category?CATS_P[g.spits[0].category]:""}</span>
+                            </div>
+                            <button onClick={()=>{if(window.confirm("¿Borrar todo el hilo? Esta acción no se puede deshacer."))g.spits.forEach(s=>deleteSpit(s.id));}} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#ddd"}}
+                              onMouseOver={e=>e.currentTarget.style.color=RAUSCH}
+                              onMouseOut={e=>e.currentTarget.style.color="#ddd"}>🗑</button>
+                          </div>
+                          {g.spits.map((s,idx)=>(
+                            <div key={s.id} style={{padding:"12px 16px",borderBottom:idx<g.spits.length-1?"1px solid #f9f9f9":"none",background:"#fafafa"}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                                <span style={{width:20,height:20,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:RAUSCH,flexShrink:0}}>{idx+1}</span>
+                                <span style={{fontSize:11,color:"#aaa"}}>{s.duration}s{s.audio_url?" · 🔊":""}</span>
+                                <button onClick={()=>{if(window.confirm("¿Borrar esta parte?"))deleteSpit(s.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"#ddd",marginLeft:"auto"}}
+                                  onMouseOver={e=>e.currentTarget.style.color=RAUSCH}
+                                  onMouseOut={e=>e.currentTarget.style.color="#ddd"}>🗑</button>
+                              </div>
+                              <Player duration={s.duration} audioUrl={s.audio_url}/>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+                    const s=g.spit;
+                    return(
+                      <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                          <div style={{fontSize:11,color:RAUSCH,fontWeight:600}}>{s.duration}s{s.audio_url?" · 🔊":""}{s.category?" · "+CATS_P[s.category]:""}</div>
+                          <button onClick={()=>{if(window.confirm("¿Seguro que querés borrar este spit? Esta acción no se puede deshacer."))deleteSpit(s.id);}} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#ddd",padding:"2px 6px",borderRadius:6}}
+                            onMouseOver={e=>e.currentTarget.style.color=RAUSCH}
+                            onMouseOut={e=>e.currentTarget.style.color="#ddd"}>🗑</button>
+                        </div>
+                        <Player duration={s.duration} audioUrl={s.audio_url}/>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
             <div style={{marginTop:24,display:"flex",flexDirection:"column",gap:8}}>
               <div style={{display:"flex",justifyContent:"center",gap:16,flexWrap:"wrap"}}>
                 <button onClick={()=>setShowTerms(true)} style={{background:"none",border:"none",fontSize:12,color:"#ccc",cursor:"pointer",textDecoration:"underline",padding:0}}>Términos de Uso</button>
