@@ -881,7 +881,13 @@ function RecordModal({onClose,currentUser,onSaved}){
         }catch{}
       }
       const lang=(navigator.language||"es").split("-")[0];
-      await dbInsertSpit({handle:currentUser.handle,role:"",emotion,category,is_mundial:isMundial,thread_id:threadId,thread_order:threadOrder,duration:seconds,lang,lat,lon,audio_url:audioUrl||"",transcript:"",country:currentUser.country||""});
+      const spitData={handle:currentUser.handle,role:"",emotion,category,is_mundial:isMundial,thread_id:threadId,thread_order:threadOrder,duration:seconds,lang,lat,lon,audio_url:audioUrl||"",transcript:"",country:currentUser.country||""};
+      // If country missing, try to fetch it
+      if(!spitData.country){
+        const{data:uData}=await sb.from("users").select("country").eq("handle",currentUser.handle).single();
+        if(uData?.country)spitData.country=uData.country;
+      }
+      await dbInsertSpit(spitData);
       setSaving(false);
       onSaved&&onSaved();
       onClose();
@@ -1064,7 +1070,7 @@ function RecordModal({onClose,currentUser,onSaved}){
               cursor:saving||!category?"not-allowed":"pointer",
               boxShadow:category?"0 4px 16px rgba(255,56,92,0.3)":"none",
             }}>
-              {saving?"Guardando...":"Escupir 🔥"}
+              {saving?"Guardando...":"Publicar"}
             </button>
             <div style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:8}}>
               {seconds}s · efecto: {EFFECTS[effect].label}
