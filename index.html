@@ -315,8 +315,12 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
     setProgress(0);setDuration(0);setPlaying(true);
     if(!spit?.audio_url)return;
     const a=new Audio(spit.audio_url);
-    a.onloadedmetadata=()=>{if(isFinite(a.duration))setDuration(Math.round(a.duration));};
-    a.ontimeupdate=()=>{setProgress(a.currentTime);};
+    a.onloadedmetadata=()=>{if(isFinite(a.duration)&&a.duration>0)setDuration(a.duration);};
+    a.ondurationchange=()=>{if(isFinite(a.duration)&&a.duration>0)setDuration(a.duration);};
+    a.ontimeupdate=()=>{
+      setProgress(a.currentTime);
+      if(isFinite(a.duration)&&a.duration>0)setDuration(a.duration);
+    };
     a.onended=()=>{setPlaying(false);if(idx<spits.length-1)setTimeout(()=>goTo(idx+1,"up"),800);};
     a.play().catch(()=>setPlaying(false));
     audioRef.current=a;
@@ -491,14 +495,16 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
           e.stopPropagation();
           if(liked[spit.id]){
             setLiked(p=>({...p,[spit.id]:false}));
+            onUnlike(spit.id);
+            try{sb.from("reactions").delete().eq("spit_id",spit.id).eq("handle",currentUser.handle).eq("emoji","❤️");}catch{}
           } else {
             doLike(e.clientX,e.clientY);
           }
-        }} style={{background:"none",border:"none",cursor:"pointer",padding:12,display:"flex",alignItems:"center",justifyContent:"center",transition:"transform 0.15s"}}
+        }} style={{background:"none",border:"none",cursor:"pointer",padding:12,display:"flex",alignItems:"center",justifyContent:"center",transition:"transform 0.15s",outline:"none",WebkitTapHighlightColor:"transparent"}}
           onMouseOver={e=>e.currentTarget.style.transform="scale(1.1)"}
           onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>
           <svg width="40" height="40" viewBox="0 0 24 24" fill={liked[spit.id]?theme.accent:"none"} stroke={liked[spit.id]?theme.accent:"rgba(255,255,255,0.5)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-            style={{filter:liked[spit.id]?`drop-shadow(0 0 8px ${theme.accent}88)`:"none",transition:"all 0.2s"}}>
+            style={{transition:"all 0.2s"}}>
             <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>
           </svg>
         </button>
@@ -1996,7 +2002,7 @@ function App(){
   };
 
   const followingSpits=spits.filter(s=>following.includes(s.handle));
-  const likedSpits=spits.filter(s=>likedIds.has(s.id));
+  const likedSpits=React.useMemo(()=>spits.filter(s=>likedIds.has(s.id)),[spits,likedIds]);
 
   return(
     <div style={{minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",paddingBottom:80}}>
