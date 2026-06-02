@@ -275,12 +275,12 @@ function AuthScreen({onLogin}){
 // ── World Map SVG ─────────────────────────────────────────────────────────────
 
 // ── Leaflet Map ───────────────────────────────────────────────────────────────
-function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowToggle}){
+function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowToggle,likedIds=new Set(),onLike=()=>{},onUnlike=()=>{}}){
   const[idx,setIdx]=useState(startIndex||0);
   const[animating,setAnimating]=useState(false);
   const[direction,setDirection]=useState(null);
   const[hearts,setHearts]=useState([]);
-  const[liked,setLiked]=useState({});
+  const[liked,setLiked]=useState(()=>{const m={};likedIds.forEach(id=>{m[id]=true;});return m;});
   const[lastTap,setLastTap]=useState(0);
   const[playing,setPlaying]=useState(true);
   const[progress,setProgress]=useState(0);
@@ -344,9 +344,14 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
     setTimeout(()=>setHearts(h=>h.filter(hh=>hh.id!==id)),1000);
     if(!liked[spit.id]){
       setLiked(p=>({...p,[spit.id]:true}));
+      onLike(spit.id);
       try{await sb.from("reactions").insert([{spit_id:spit.id,handle:currentUser.handle,emoji:"❤️"}]);}catch{}
       if(spit.handle&&spit.handle!==currentUser.handle)
         try{await sb.from("notifications").insert({to_handle:spit.handle,from_handle:currentUser.handle,type:"like",spit_id:spit.id});}catch{}
+    } else {
+      setLiked(p=>({...p,[spit.id]:false}));
+      onUnlike(spit.id);
+      try{await sb.from("reactions").delete().eq("spit_id",spit.id).eq("handle",currentUser.handle).eq("emoji","❤️");}catch{}
     }
   };
 
@@ -1704,6 +1709,7 @@ function App(){
   const[viewProfile,setViewProfile]=useState(null);
   const[mundialFilter,setMundialFilter]=useState(false);
   const[mundialDefault,setMundialDefault]=useState(false);
+  const[likedIds,setLikedIds]=useState(new Set());
   const[searchQuery,setSearchQuery]=useState("");
   const[searchResults,setSearchResults]=useState([]);
   const[searchLoading,setSearchLoading]=useState(false);
@@ -1749,7 +1755,7 @@ function App(){
   useEffect(()=>{
     if(!user)return;
     loadSpits();
-    if(user.handle){loadFollowing(user.handle);loadNotifications(user.handle);}
+    if(user.handle){loadFollowing(user.handle);loadNotifications(user.handle);loadLikedIds(user.handle);}
     const ch=sb.channel("spits").on("postgres_changes",{event:"INSERT",schema:"public",table:"spits"},p=>{
       const s=p.new;
       const x=s.lon!=null?((s.lon+180)/360)*80+10:Math.random()*60+20;
@@ -1795,6 +1801,11 @@ function App(){
   const markAllRead=async()=>{
     await sb.from("notifications").update({read:true}).eq("to_handle",user.handle).eq("read",false);
     setNotifications(p=>p.map(n=>({...n,read:true})));
+  };
+
+  const loadLikedIds=async(handle)=>{
+    const{data}=await sb.from("reactions").select("spit_id").eq("handle",handle).eq("emoji","❤️");
+    if(data)setLikedIds(new Set(data.map(r=>r.spit_id)));
   };
 
   const toggleFollow=async(h)=>{
@@ -1985,7 +1996,7 @@ function App(){
   };
 
   const followingSpits=spits.filter(s=>following.includes(s.handle));
-  const likedSpits=spits.filter(s=>s.liked);
+  const likedSpits=spits.filter(s=>likedIds.has(s.id));
 
   return(
     <div style={{minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",paddingBottom:80}}>
@@ -2410,7 +2421,7 @@ function App(){
       )}
 
       {showRecord&&<RecordModal onClose={()=>{setShowRecord(false);setMundialDefault(false);}} currentUser={user} onSaved={loadSpits} mundialDefault={mundialDefault}/>}
-      {showListen&&spits.length>0&&<ListenMode spits={spits} startIndex={listenStart} onClose={()=>setShowListen(false)} currentUser={user} following={following} onFollowToggle={toggleFollow}/>}
+      {showListen&&spits.length>0&&<ListenMode spits={spits} startIndex={listenStart} onClose={()=>{setShowListen(false);}} currentUser={user} following={following} onFollowToggle={toggleFollow} likedIds={likedIds} onLike={(id)=>setLikedIds(p=>new Set([...p,id]))} onUnlike={(id)=>setLikedIds(p=>{const s=new Set(p);s.delete(id);return s;})}/>}
     </div>
   );
 }
