@@ -1481,19 +1481,10 @@ function CompleteProfile({email,authId,onDone}){
       const geoData=await geo.json();
       if(geoData&&geoData.country_code)country=geoData.country_code;
     }catch{}
-    try{
-      const{error:err}=await sb.from("users").insert([{email,handle:h,role:"",auth_id:authId,country}]);
-      if(err){
-        if(err.code==="23505"){setError("Ese nickname ya está en uso.");}
-        else{setError("Error al crear cuenta. Intentá de nuevo.");}
-        setLoading(false);return;
-      }
-      setLoading(false);
-      onDone({email,handle:h,role:"",country});
-    }catch(e){
-      setError("Error de conexión. Intentá de nuevo.");
-      setLoading(false);
-    }
+    const{error:err}=await sb.from("users").insert([{email,handle:h,role:"",auth_id:authId,country}]);
+    if(err){setError("Ese nickname ya está en uso.");setLoading(false);return;}
+    setLoading(false);
+    onDone({email,handle:h,role:"",country});
   };
 
   return(
@@ -1754,7 +1745,7 @@ function App(){
       if(event==="SIGNED_IN"&&session){
         const{data:profile}=await sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at").eq("auth_id",session.user.id).single();
         if(profile){
-          setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role]});
+          setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role],country:profile.country||"",bio:profile.bio||"",handle_changed_at:profile.handle_changed_at||null});
         }else{
           setUser({email:session.user.email,handle:null,role:null,needsProfile:true,auth_id:session.user.id});
         }
