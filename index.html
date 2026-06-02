@@ -1473,11 +1473,27 @@ function CompleteProfile({email,authId,onDone}){
     if(h.length<4){setError("El nickname debe tener al menos 3 caracteres.");return;}
     setLoading(true);
     let country="";
-    try{const geo=await fetch("https://ipapi.co/json/");const geoData=await geo.json();if(geoData&&geoData.country_code)country=geoData.country_code;}catch{}
-    const{error:err}=await sb.from("users").insert([{email,handle:h,role:"",auth_id:authId,country}]);
-    if(err){setError("Ese nickname ya está en uso.");setLoading(false);return;}
-    setLoading(false);
-    onDone({email,handle:h,role:"",country});
+    try{
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),3000);
+      const geo=await fetch("https://ipapi.co/json/",{signal:controller.signal});
+      clearTimeout(timeout);
+      const geoData=await geo.json();
+      if(geoData&&geoData.country_code)country=geoData.country_code;
+    }catch{}
+    try{
+      const{error:err}=await sb.from("users").insert([{email,handle:h,role:"",auth_id:authId,country}]);
+      if(err){
+        if(err.code==="23505"){setError("Ese nickname ya está en uso.");}
+        else{setError("Error al crear cuenta. Intentá de nuevo.");}
+        setLoading(false);return;
+      }
+      setLoading(false);
+      onDone({email,handle:h,role:"",country});
+    }catch(e){
+      setError("Error de conexión. Intentá de nuevo.");
+      setLoading(false);
+    }
   };
 
   return(
