@@ -918,7 +918,7 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false}){
               {recording?<span style={{color:"#aaa"}}>grabando · {seconds}s</span>:"tiempo disponible"}
             </div>
             <div style={{height:4,background:"#f0f0f0",borderRadius:2,marginBottom:36,overflow:"hidden"}}>
-              <div style={{height:"100%",background:60-seconds<10?RAUSCH:"#22c55e",borderRadius:2,width:`${((60-seconds)/90)*100}%`,transition:"width 1s linear"}}/>
+              <div style={{height:"100%",background:RAUSCH,borderRadius:2,width:`${((60-seconds)/60)*100}%`,transition:"width 1s linear"}}/>
             </div>
             <button onClick={recording?stop:start} style={{width:80,height:80,borderRadius:"50%",background:recording?RAUSCH:"#fff",border:recording?"none":"2px solid #e8e8e8",cursor:"pointer",fontSize:28,boxShadow:recording?`0 0 0 12px rgba(255,56,92,0.1),0 4px 20px rgba(255,56,92,0.4)`:"0 2px 12px rgba(0,0,0,0.1)",transition:"all 0.3s"}}>
               {recording?"⏹":"🎙"}
