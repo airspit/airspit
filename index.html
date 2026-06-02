@@ -1473,14 +1473,7 @@ function CompleteProfile({email,authId,onDone}){
     if(h.length<4){setError("El nickname debe tener al menos 3 caracteres.");return;}
     setLoading(true);
     let country="";
-    try{
-      const controller=new AbortController();
-      const timeout=setTimeout(()=>controller.abort(),3000);
-      const geo=await fetch("https://ipapi.co/json/",{signal:controller.signal});
-      clearTimeout(timeout);
-      const geoData=await geo.json();
-      if(geoData&&geoData.country_code)country=geoData.country_code;
-    }catch{}
+    try{const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),3000);const geo=await fetch("https://ipapi.co/json/",{signal:ctrl.signal});const geoData=await geo.json();if(geoData&&geoData.country_code)country=geoData.country_code;}catch{}
     const{error:err}=await sb.from("users").insert([{email,handle:h,role:"",auth_id:authId,country}]);
     if(err){setError("Ese nickname ya está en uso.");setLoading(false);return;}
     setLoading(false);
@@ -1745,7 +1738,7 @@ function App(){
       if(event==="SIGNED_IN"&&session){
         const{data:profile}=await sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at").eq("auth_id",session.user.id).single();
         if(profile){
-          setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role],country:profile.country||"",bio:profile.bio||"",handle_changed_at:profile.handle_changed_at||null});
+          setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role]});
         }else{
           setUser({email:session.user.email,handle:null,role:null,needsProfile:true,auth_id:session.user.id});
         }
