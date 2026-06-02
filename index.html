@@ -1810,8 +1810,10 @@ function App(){
   };
 
   const loadLikedIds=async(handle)=>{
-    const{data}=await sb.from("reactions").select("spit_id").eq("handle",handle).eq("emoji","❤️");
-    if(data)setLikedIds(new Set(data.map(r=>r.spit_id)));
+    try{
+      const{data,error}=await sb.from("reactions").select("spit_id").eq("handle",handle).eq("emoji","❤️");
+      if(data&&!error)setLikedIds(new Set(data.map(r=>r.spit_id)));
+    }catch{}
   };
 
   const toggleFollow=async(h)=>{
