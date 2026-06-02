@@ -2002,7 +2002,7 @@ function App(){
   };
 
   const followingSpits=spits.filter(s=>following.includes(s.handle));
-  const likedSpits=React.useMemo(()=>spits.filter(s=>likedIds.has(s.id)),[spits,likedIds]);
+  const likedSpits=spits.filter(s=>likedIds.has(s.id));
 
   return(
     <div style={{minHeight:"100vh",background:"#f7f7f7",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",paddingBottom:80}}>
