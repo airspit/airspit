@@ -709,7 +709,7 @@ function SpitCard({spit,onClose,following,onFollowToggle,currentUser}){
 }
 
 // ── Record Modal ──────────────────────────────────────────────────────────────
-function RecordModal({onClose,currentUser,onSaved}){
+function RecordModal({onClose,currentUser,onSaved,mundialDefault=false}){
   const[recording,setRecording]=useState(false);
   const[seconds,setSeconds]=useState(0);
   const[done,setDone]=useState(false);
@@ -720,7 +720,7 @@ function RecordModal({onClose,currentUser,onSaved}){
   const[emotion,setEmotion]=useState("");
   const[category,setCategory]=useState("");
   const[threadId,setThreadId]=useState(null);
-  const[isMundial,setIsMundial]=useState(false);
+  const[isMundial,setIsMundial]=useState(mundialDefault);
   const[threadOrder,setThreadOrder]=useState(1);
   const[showThreadPicker,setShowThreadPicker]=useState(false);
   const[mySpitsForThread,setMySpitsForThread]=useState([]);
@@ -1703,6 +1703,7 @@ function App(){
   const[showSearch,setShowSearch]=useState(false);
   const[viewProfile,setViewProfile]=useState(null);
   const[mundialFilter,setMundialFilter]=useState(false);
+  const[mundialDefault,setMundialDefault]=useState(false);
   const[searchQuery,setSearchQuery]=useState("");
   const[searchResults,setSearchResults]=useState([]);
   const[searchLoading,setSearchLoading]=useState(false);
@@ -2068,7 +2069,7 @@ function App(){
                 )}
               </div>
             )}
-            <MundialCard onSpit={()=>{setShowRecord(true);}}/>
+            <MundialCard onSpit={()=>{setMundialDefault(true);setShowRecord(true);}}/>
 
             {/* Mundial filter toggle */}
             <div style={{display:"flex",gap:8,marginBottom:12}}>
@@ -2408,7 +2409,7 @@ function App(){
         </div>
       )}
 
-      {showRecord&&<RecordModal onClose={()=>setShowRecord(false)} currentUser={user} onSaved={loadSpits}/>}
+      {showRecord&&<RecordModal onClose={()=>{setShowRecord(false);setMundialDefault(false);}} currentUser={user} onSaved={loadSpits} mundialDefault={mundialDefault}/>}
       {showListen&&spits.length>0&&<ListenMode spits={spits} startIndex={listenStart} onClose={()=>setShowListen(false)} currentUser={user} following={following} onFollowToggle={toggleFollow}/>}
     </div>
   );
