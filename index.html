@@ -1473,7 +1473,7 @@ function CompleteProfile({email,authId,onDone}){
     if(h.length<4){setError("El nickname debe tener al menos 3 caracteres.");return;}
     setLoading(true);
     let country="";
-    try{const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),3000);const geo=await fetch("https://ipapi.co/json/",{signal:ctrl.signal});const geoData=await geo.json();if(geoData&&geoData.country_code)country=geoData.country_code;}catch{}
+    try{const geo=await fetch("https://ipapi.co/json/");const geoData=await geo.json();if(geoData&&geoData.country_code)country=geoData.country_code;}catch{}
     const{error:err}=await sb.from("users").insert([{email,handle:h,role:"",auth_id:authId,country}]);
     if(err){setError("Ese nickname ya está en uso.");setLoading(false);return;}
     setLoading(false);
@@ -1810,10 +1810,8 @@ function App(){
   };
 
   const loadLikedIds=async(handle)=>{
-    try{
-      const{data,error}=await sb.from("reactions").select("spit_id").eq("handle",handle).eq("emoji","❤️");
-      if(data&&!error)setLikedIds(new Set(data.map(r=>r.spit_id)));
-    }catch{}
+    const{data}=await sb.from("reactions").select("spit_id").eq("handle",handle).eq("emoji","❤️");
+    if(data)setLikedIds(new Set(data.map(r=>r.spit_id)));
   };
 
   const toggleFollow=async(h)=>{
@@ -2437,7 +2435,6 @@ function App(){
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 <script>
-// Unregister any existing service workers
 if('serviceWorker' in navigator){
   navigator.serviceWorker.getRegistrations().then(registrations=>{
     for(let r of registrations)r.unregister();
