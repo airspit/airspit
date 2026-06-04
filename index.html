@@ -53,6 +53,48 @@ const SPEEDS=[1,1.5,2];
 const LANG_NAMES={es:"español",en:"inglés",fr:"francés",ja:"japonés",de:"alemán",pt:"portugués",it:"italiano"};
 
 const GENDERS=["M","F","No especifico"];
+const COUNTRIES=[
+  {code:"AR",name:"Argentina"},
+  {code:"MX",name:"México"},
+  {code:"CO",name:"Colombia"},
+  {code:"CL",name:"Chile"},
+  {code:"PE",name:"Perú"},
+  {code:"VE",name:"Venezuela"},
+  {code:"EC",name:"Ecuador"},
+  {code:"BO",name:"Bolivia"},
+  {code:"PY",name:"Paraguay"},
+  {code:"UY",name:"Uruguay"},
+  {code:"BR",name:"Brasil"},
+  {code:"US",name:"Estados Unidos"},
+  {code:"ES",name:"España"},
+  {code:"GB",name:"Reino Unido"},
+  {code:"AU",name:"Australia"},
+  {code:"CA",name:"Canadá"},
+  {code:"DE",name:"Alemania"},
+  {code:"FR",name:"Francia"},
+  {code:"IT",name:"Italia"},
+  {code:"JP",name:"Japón"},
+  {code:"NL",name:"Países Bajos"},
+  {code:"PT",name:"Portugal"},
+  {code:"SE",name:"Suecia"},
+  {code:"CH",name:"Suiza"},
+  {code:"NZ",name:"Nueva Zelanda"},
+  {code:"ZA",name:"Sudáfrica"},
+  {code:"NG",name:"Nigeria"},
+  {code:"EG",name:"Egipto"},
+  {code:"MA",name:"Marruecos"},
+  {code:"TR",name:"Turquía"},
+  {code:"IN",name:"India"},
+  {code:"CN",name:"China"},
+  {code:"KR",name:"Corea del Sur"},
+  {code:"SG",name:"Singapur"},
+  {code:"AE",name:"Emiratos Árabes"},
+  {code:"SA",name:"Arabia Saudita"},
+  {code:"RU",name:"Rusia"},
+  {code:"PL",name:"Polonia"},
+  {code:"UA",name:"Ucrania"},
+  {code:"OTHER",name:"Otro"},
+];
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
 const sb=supabase.createClient(
@@ -60,10 +102,10 @@ const sb=supabase.createClient(
   "sb_publishable_lYe6NtQadIIlIQ9CzuClFA_tDMo1Bhk"
 );
 
-async function dbRegister(email,password,handle,role){
+async function dbRegister(email,password,handle,role,country=""){
   const{data:a,error:e}=await sb.auth.signUp({email,password});
   if(e)return{error:e.message};
-  await sb.from("users").insert([{email,handle,role,auth_id:a.user?.id}]);
+  await sb.from("users").insert([{email,handle,role,auth_id:a.user?.id,country}]);
   return{ok:true};
 }
 async function dbLogin(email,password){
@@ -113,6 +155,7 @@ function AuthScreen({onLogin}){
   const[handle,setHandle]=useState("");
   const[password,setPassword]=useState("");
   const[role,setRole]=useState("");
+  const[country,setCountry]=useState("");
   const[error,setError]=useState("");
   const[loading,setLoading]=useState(false);
   const[showPass,setShowPass]=useState(false);
@@ -137,14 +180,15 @@ function AuthScreen({onLogin}){
     setLoading(true);
     if(mode==="register"){
       if(!handle){setError("Completá el nickname.");setLoading(false);return;}
+      if(!country){setError("Seleccioná tu país.");setLoading(false);return;}
       const h="@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,"");
-      const{error:err}=await dbRegister(email,password,h,"");
+      const{error:err}=await dbRegister(email,password,h,"",country);
       if(err){setError(err);setLoading(false);return;}
-      onLogin({email,handle:h,role:""});
+      onLogin({email,handle:h,role:"",country});
     }else{
       const{data,error:err}=await dbLogin(email,password);
       if(err){setError(err);setLoading(false);return;}
-      onLogin({email:data.email,handle:data.handle,role:data.role});
+      onLogin({email:data.email,handle:data.handle,role:data.role,country:data.country});
     }
     setLoading(false);
   };
@@ -212,6 +256,12 @@ function AuthScreen({onLogin}){
               <input type="text" placeholder="usuario" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} style={{...iStyle,paddingLeft:28}}/>
             </div>
             <p style={{fontSize:11,color:"#bbb",marginTop:-8}}>Usá un nickname, nadie necesita saber quién sos.</p>
+            <select value={country} onChange={e=>setCountry(e.target.value)} style={{...iStyle,color:country?"#222":"#aaa"}}>
+              <option value="" disabled>🌍 ¿De dónde sos?</option>
+              {COUNTRIES.map(c=>(
+                <option key={c.code} value={c.code}>{countryFlag(c.code)} {c.name}</option>
+              ))}
+            </select>
           </>}
           <div style={{position:"relative"}}>
             <input type={showPass?"text":"password"} placeholder="Contraseña" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} style={{...iStyle,paddingRight:44}}/>
@@ -1463,17 +1513,17 @@ function CommunityPage({onClose}){
 }
 function CompleteProfile({email,authId,onDone}){
   const[handle,setHandle]=useState("");
+  const[country,setCountry]=useState("");
   const[error,setError]=useState("");
   const[loading,setLoading]=useState(false);
   const iStyle={width:"100%",padding:"12px 14px",background:"#f7f7f7",border:"1.5px solid #ebebeb",borderRadius:10,fontSize:14,color:"#222",outline:"none"};
 
   const save=async()=>{
     if(!handle){setError("Elegí un nickname.");return;}
+    if(!country){setError("Seleccioná tu país.");return;}
     const h="@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,"");
     if(h.length<4){setError("El nickname debe tener al menos 3 caracteres.");return;}
     setLoading(true);
-    let country="";
-    try{const geo=await fetch("https://ipapi.co/json/");const geoData=await geo.json();if(geoData&&geoData.country_code)country=geoData.country_code;}catch{}
     const{error:err}=await sb.from("users").insert([{email,handle:h,role:"",auth_id:authId,country}]);
     if(err){setError("Ese nickname ya está en uso.");setLoading(false);return;}
     setLoading(false);
@@ -1489,6 +1539,12 @@ function CompleteProfile({email,authId,onDone}){
           <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"#aaa"}}>@</span>
           <input type="text" placeholder="tunickname" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} style={{...iStyle,paddingLeft:28}}/>
         </div>
+        <select value={country} onChange={e=>setCountry(e.target.value)} style={{...iStyle,color:country?"#222":"#aaa"}}>
+          <option value="" disabled>🌍 ¿De dónde sos?</option>
+          {COUNTRIES.map(c=>(
+            <option key={c.code} value={c.code}>{countryFlag(c.code)} {c.name}</option>
+          ))}
+        </select>
         {error&&<div style={{fontSize:12,color:RAUSCH,background:"#fff0f3",padding:"8px 12px",borderRadius:8}}>{error}</div>}
         <button onClick={save} disabled={loading} style={{width:"100%",padding:16,borderRadius:10,background:loading?"#ffb3c0":RAUSCH,border:"none",color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"not-allowed":"pointer",boxShadow:"0 4px 16px rgba(255,56,92,0.3)"}}>
           {loading?"Guardando...":"Empezar a escupir 🔥"}
