@@ -275,7 +275,7 @@ function AuthScreen({onLogin}){
 // ── World Map SVG ─────────────────────────────────────────────────────────────
 
 // ── Leaflet Map ───────────────────────────────────────────────────────────────
-function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowToggle,likedIds=new Set(),onLike=()=>{},onUnlike=()=>{},onViewProfile=()=>{}}){
+function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowToggle,likedIds=new Set(),onLike=()=>{},onUnlike=()=>{}}){
   const[idx,setIdx]=useState(startIndex||0);
   const[animating,setAnimating]=useState(false);
   const[direction,setDirection]=useState(null);
@@ -285,6 +285,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const[playing,setPlaying]=useState(true);
   const[progress,setProgress]=useState(0);
   const[duration,setDuration]=useState(0);
+  const[speed,setSpeed]=useState(1);
   const audioRef=useRef(null);
   const progressRef=useRef(null);
   const touchStartY=useRef(null);
@@ -323,6 +324,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
     };
     a.onended=()=>{setPlaying(false);if(idx<spits.length-1)setTimeout(()=>goTo(idx+1,"up"),800);};
     a.play().catch(()=>setPlaying(false));
+    a.playbackRate=speed;
     audioRef.current=a;
     return()=>{if(audioRef.current){audioRef.current.pause();audioRef.current=null;}};
   },[idx]);
@@ -332,6 +334,10 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
     if(playing)audioRef.current.play().catch(()=>{});
     else audioRef.current.pause();
   },[playing]);
+
+  useEffect(()=>{
+    if(audioRef.current)audioRef.current.playbackRate=speed;
+  },[speed]);
 
   const goTo=(newIdx,dir)=>{
     if(animating||newIdx<0||newIdx>=spits.length)return;
@@ -442,7 +448,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
         {/* User info */}
         <div style={{textAlign:"center",marginBottom:40}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:6}}>
-            <span onClick={e=>{e.stopPropagation();onViewProfile(spit.handle);}} style={{fontSize:20,fontWeight:800,color:"#fff",letterSpacing:-0.5,cursor:"pointer",textDecoration:"underline",textDecorationColor:"rgba(255,255,255,0.3)",textUnderlineOffset:3}}>{spit.handle}</span>
+            <span style={{fontSize:20,fontWeight:800,color:"#fff",letterSpacing:-0.5}}>{spit.handle}</span>
             {VERIFIED.includes(spit.handle)&&<VerifiedBadge/>}
             <span style={{fontSize:16}}>{countryFlag(spit.country||"")}</span>
           </div>
@@ -486,6 +492,21 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
           <button onClick={()=>goTo(idx+1,"up")} disabled={idx===spits.length-1} style={{background:"none",border:"none",cursor:idx===spits.length-1?"not-allowed":"pointer",opacity:idx===spits.length-1?0.2:0.6,color:"#fff",fontSize:24,display:"flex",alignItems:"center"}}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="4" x2="19" y2="20" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
           </button>
+        </div>
+
+        {/* Speed selector */}
+        <div style={{display:"flex",gap:8,marginTop:20}} onClick={e=>e.stopPropagation()}>
+          {[1,1.5,2].map(s=>(
+            <button key={s} onClick={()=>setSpeed(s)} style={{
+              padding:"5px 14px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,
+              background:speed===s?"rgba(255,255,255,0.25)":"rgba(255,255,255,0.08)",
+              color:speed===s?"#fff":"rgba(255,255,255,0.45)",
+              transition:"all 0.2s",
+              backdropFilter:"blur(8px)",
+            }}>
+              {s===1?"1×":s+"×"}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -1584,56 +1605,20 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
           </div>
           {spits.length===0?(
             <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>Todavía no escupió nada.</div>
-          ):(()=>{
-            const CATS_P={verdad:"🔥 Verdad",bronca:"😤 Bronca",sentimiento:"❤️ Sentimiento",historia:"😂 Historia",momento:"⚡ Momento"};
-            const seen=new Set();
-            const groups=[];
-            spits.forEach(s=>{
-              if(s.thread_id&&!seen.has(s.thread_id)){
-                const thread=spits.filter(x=>x.thread_id===s.thread_id).sort((a,b)=>a.thread_order-b.thread_order);
-                thread.forEach(x=>seen.add(x.thread_id));
-                groups.push({type:"thread",id:s.thread_id,spits:thread});
-              }else if(!s.thread_id&&!seen.has(s.id)){
-                seen.add(s.id);
-                groups.push({type:"single",id:s.id,spit:s});
-              }
-            });
-            return(
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {groups.map(g=>{
-                  if(g.type==="thread"){
-                    return(
-                      <div key={g.id} style={{background:"#fff",borderRadius:14,boxShadow:"0 1px 6px rgba(0,0,0,0.05)",overflow:"hidden"}}>
-                        <div style={{padding:"12px 16px",borderBottom:"1px solid #f5f5f5",display:"flex",alignItems:"center",gap:8}}>
-                          <span style={{fontSize:10,background:"#fff0f3",color:RAUSCH,padding:"2px 8px",borderRadius:10,fontWeight:700}}>🧵 {g.spits.length} partes</span>
-                          <span style={{fontSize:11,color:"#aaa"}}>{g.spits[0].category?CATS_P[g.spits[0].category]:""}</span>
-                        </div>
-                        {g.spits.map((s,i)=>(
-                          <div key={s.id} style={{padding:"12px 16px",borderBottom:i<g.spits.length-1?"1px solid #f9f9f9":"none",background:"#fafafa"}}>
-                            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                              <span style={{width:20,height:20,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:RAUSCH,flexShrink:0}}>{i+1}</span>
-                              <span style={{fontSize:11,color:"#aaa"}}>{s.duration}s{s.audio_url?" · 🔊":""}</span>
-                            </div>
-                            <Player duration={s.duration} audioUrl={s.audio_url}/>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  }
-                  const s=g.spit;
-                  return(
-                    <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}}>
-                      <div style={{fontSize:11,color:RAUSCH,fontWeight:600,marginBottom:10}}>
-                        {s.duration}s{s.audio_url?" · 🔊":""}{s.category?" · "+CATS_P[s.category]:""}
-                        {s.emotion&&<span style={{marginLeft:6}}>{s.emotion}</span>}
-                      </div>
-                      <Player duration={s.duration} audioUrl={s.audio_url}/>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
+          ):(
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {spits.map(s=>(
+                <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"14px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                    {s.category&&<span style={{fontSize:11,color:RAUSCH,fontWeight:600}}>{CATS[s.category]}</span>}
+                    {s.emotion&&<span style={{fontSize:14}}>{s.emotion}</span>}
+                    <span style={{fontSize:11,color:"#bbb",marginLeft:"auto"}}>{s.duration}s</span>
+                  </div>
+                  <Player duration={s.duration} audioUrl={s.audio_url}/>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -2463,7 +2448,7 @@ function App(){
       )}
 
       {showRecord&&<RecordModal onClose={()=>{setShowRecord(false);setMundialDefault(false);}} currentUser={user} onSaved={loadSpits} mundialDefault={mundialDefault}/>}
-      {showListen&&spits.length>0&&<ListenMode spits={spits} startIndex={listenStart} onClose={()=>{setShowListen(false);}} currentUser={user} following={following} onFollowToggle={toggleFollow} likedIds={likedIds} onLike={(id)=>setLikedIds(p=>new Set([...p,id]))} onUnlike={(id)=>setLikedIds(p=>{const s=new Set(p);s.delete(id);return s;})} onViewProfile={(handle)=>{setShowListen(false);setViewProfile(handle);}}/>}
+      {showListen&&spits.length>0&&<ListenMode spits={spits} startIndex={listenStart} onClose={()=>{setShowListen(false);}} currentUser={user} following={following} onFollowToggle={toggleFollow} likedIds={likedIds} onLike={(id)=>setLikedIds(p=>new Set([...p,id]))} onUnlike={(id)=>setLikedIds(p=>{const s=new Set(p);s.delete(id);return s;})}/>}
     </div>
   );
 }
