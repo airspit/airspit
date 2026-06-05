@@ -1804,6 +1804,7 @@ function App(){
   const[handleError,setHandleError]=useState("");
   const[followerCount,setFollowerCount]=useState(0);
   const[followersList,setFollowersList]=useState([]);
+  const[followingUsers,setFollowingUsers]=useState([]);
   const[showFollowers,setShowFollowers]=useState(false);
   const[showFollowing,setShowFollowing]=useState(false);
   const[showSearch,setShowSearch]=useState(false);
@@ -1898,7 +1899,14 @@ function App(){
   const logout=async()=>{await sb.auth.signOut();setUser(null);};
   const loadFollowing=async(handle)=>{
     const{data}=await sb.from("follows").select("following").eq("follower",handle);
-    if(data)setFollowing(data.map(f=>f.following));
+    if(data){
+      const handles=data.map(f=>f.following);
+      setFollowing(handles);
+      if(handles.length>0){
+        const{data:users}=await sb.from("users").select("handle,country,bio").in("handle",handles);
+        if(users)setFollowingUsers(users);
+      }
+    }
   };
 
   const loadNotifications=async(handle)=>{
@@ -2397,19 +2405,20 @@ function App(){
             ):(
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {following.map(handle=>{
-                  const spit=spits.find(s=>s.handle===handle);
-                  const flag=spit?getFlag(spit):"";
+                  const userData=followingUsers.find(u=>u.handle===handle);
+                  const country=userData?.country||"";
                   return(
-                    <div key={handle} style={{background:"#fff",borderRadius:14,padding:"16px 20px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)",display:"flex",alignItems:"center",gap:14}}>
+                    <div key={handle} style={{background:"#fff",borderRadius:14,padding:"16px 20px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)",display:"flex",alignItems:"center",gap:14,cursor:"pointer"}} onClick={()=>setViewProfile(handle)}>
                       <div style={{width:48,height:48,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🙋</div>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:"flex",alignItems:"center",gap:6}}>
                           <span style={{fontSize:15,fontWeight:700,color:"#222"}}>{handle}</span>
                           {VERIFIED.has(handle)&&<VerifiedBadge/>}
-                          {flag&&<span style={{fontSize:14}}>{flag}</span>}
+                          {country&&<span style={{fontSize:14}}>{countryFlag(country)}</span>}
                         </div>
+                        {userData?.bio&&<div style={{fontSize:16,marginTop:2,letterSpacing:2}}>{userData.bio}</div>}
                       </div>
-                      <button onClick={()=>toggleFollow(handle)} style={{background:"none",border:"1.5px solid #ebebeb",borderRadius:20,padding:"6px 16px",fontSize:12,fontWeight:600,color:RAUSCH,cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>
+                      <button onClick={e=>{e.stopPropagation();toggleFollow(handle);}} style={{background:"none",border:"1.5px solid #ebebeb",borderRadius:20,padding:"6px 16px",fontSize:12,fontWeight:600,color:RAUSCH,cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>
                         Dejar de seguir
                       </button>
                     </div>
