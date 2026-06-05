@@ -27,7 +27,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 const {useState,useEffect,useRef}=React;
 const RAUSCH='#FF385C';
 const BABU='#00A699';
-const VERIFIED=new Set(); // se carga dinámicamente desde Supabase
+const VERIFIED=['@airspit','@arturoblas','airspit','arturoblas'];
 const countryFlag=(code)=>{if(!code||code.length!==2)return "";return code.toUpperCase().replace(/./g,c=>String.fromCodePoint(c.charCodeAt(0)+127397));};
 const VerifiedBadge=()=>(
   <svg width="16" height="16" viewBox="0 0 16 16" style={{display:"inline-block",verticalAlign:"middle",marginLeft:3,flexShrink:0}}>
@@ -279,9 +279,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const[idx,setIdx]=useState(startIndex||0);
   const[animating,setAnimating]=useState(false);
   const[direction,setDirection]=useState(null);
-  const[hearts,setHearts]=useState([]);
   const[liked,setLiked]=useState(()=>{const m={};likedIds.forEach(id=>{m[id]=true;});return m;});
-  const[lastTap,setLastTap]=useState(0);
   const[playing,setPlaying]=useState(true);
   const[progress,setProgress]=useState(0);
   const[duration,setDuration]=useState(0);
@@ -342,17 +340,16 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const next=()=>goTo(idx+1,"up");
   const prev=()=>goTo(idx-1,"down");
 
-  const doLike=async(x,y)=>{
-    const id=Date.now();
-    setHearts(h=>[...h,{id,x:x||window.innerWidth/2,y:y||window.innerHeight/2}]);
-    setTimeout(()=>setHearts(h=>h.filter(hh=>hh.id!==id)),1000);
+  const[lastTap,setLastTap]=useState(0);
+
+  const doLike=async()=>{
     if(!liked[spit.id]){
       setLiked(p=>({...p,[spit.id]:true}));
       onLike(spit.id);
       try{await sb.from("reactions").insert([{spit_id:spit.id,handle:currentUser.handle,emoji:"❤️"}]);}catch{}
       if(spit.handle&&spit.handle!==currentUser.handle)
         try{await sb.from("notifications").insert({to_handle:spit.handle,from_handle:currentUser.handle,type:"like",spit_id:spit.id});}catch{}
-    } else {
+    }else{
       setLiked(p=>({...p,[spit.id]:false}));
       onUnlike(spit.id);
       try{await sb.from("reactions").delete().eq("spit_id",spit.id).eq("handle",currentUser.handle).eq("emoji","❤️");}catch{}
@@ -361,7 +358,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
 
   const handleTap=async(e)=>{
     const now=Date.now();
-    if(now-lastTap<300)doLike(e.clientX||e.touches?.[0]?.clientX,e.clientY||e.touches?.[0]?.clientY);
+    if(now-lastTap<300)doLike();
     setLastTap(now);
   };
 
@@ -491,16 +488,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
 
       {/* Like button */}
       <div style={{display:"flex",justifyContent:"center",paddingBottom:36,zIndex:10}} onClick={e=>e.stopPropagation()}>
-        <button onClick={e=>{
-          e.stopPropagation();
-          if(liked[spit.id]){
-            setLiked(p=>({...p,[spit.id]:false}));
-            onUnlike(spit.id);
-            try{sb.from("reactions").delete().eq("spit_id",spit.id).eq("handle",currentUser.handle).eq("emoji","❤️");}catch{}
-          } else {
-            doLike(e.clientX,e.clientY);
-          }
-        }} style={{background:"none",border:"none",cursor:"pointer",padding:12,display:"flex",alignItems:"center",justifyContent:"center",transition:"transform 0.15s",outline:"none",WebkitTapHighlightColor:"transparent"}}
+        <button onClick={e=>{e.stopPropagation();doLike();}} style={{background:"none",border:"none",cursor:"pointer",padding:12,display:"flex",alignItems:"center",justifyContent:"center",transition:"transform 0.15s",outline:"none",WebkitTapHighlightColor:"transparent"}}
           onMouseOver={e=>e.currentTarget.style.transform="scale(1.1)"}
           onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>
           <svg width="40" height="40" viewBox="0 0 24 24" fill={liked[spit.id]?theme.accent:"none"} stroke={liked[spit.id]?theme.accent:"rgba(255,255,255,0.5)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
@@ -510,13 +498,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
         </button>
       </div>
 
-      {/* Flying hearts */}
-      {hearts.map(h=>(
-        <div key={h.id} style={{position:"absolute",left:h.x-25,top:h.y-25,fontSize:48,pointerEvents:"none",animation:"heartFly 0.9s ease-out forwards",zIndex:999}}>❤️</div>
-      ))}
-
       <style>{`
-        @keyframes heartFly{0%{transform:scale(0);opacity:1}50%{transform:scale(1.4);opacity:1}100%{transform:scale(0.8) translateY(-100px);opacity:0}}
         @keyframes wave{from{transform:scaleY(0.3)}to{transform:scaleY(1)}}
       `}</style>
     </div>
@@ -1758,15 +1740,9 @@ function App(){
     setSpits(positioned);
   };
 
-  const loadVerified=async()=>{
-    const{data}=await sb.from("users").select("handle").eq("verified",true);
-    if(data)data.forEach(u=>{VERIFIED.add(u.handle);VERIFIED.add(u.handle.replace("@",""));});
-  };
-
   useEffect(()=>{
     if(!user)return;
     loadSpits();
-    loadVerified();
     if(user.handle){loadFollowing(user.handle);loadNotifications(user.handle);loadLikedIds(user.handle);}
     const ch=sb.channel("spits").on("postgres_changes",{event:"INSERT",schema:"public",table:"spits"},p=>{
       const s=p.new;
