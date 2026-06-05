@@ -319,7 +319,7 @@ function ReportModalStandalone({spitId,reporterHandle,onClose}){
   );
 }
 
-function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowToggle,likedIds=new Set(),onLike=()=>{},onUnlike=()=>{},onViewProfile=()=>{},savedIds=new Set(),onToggleSave=()=>{},onRespit=()={}}){
+function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowToggle,likedIds=new Set(),onLike=()=>{},onUnlike=()=>{},onViewProfile=()=>{},savedIds=new Set(),onToggleSave=()=>{},onRespit=()=>{}}){
   const[idx,setIdx]=useState(startIndex||0);
   const[animating,setAnimating]=useState(false);
   const[direction,setDirection]=useState(null);
