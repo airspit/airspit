@@ -275,6 +275,45 @@ function AuthScreen({onLogin}){
 // ── World Map SVG ─────────────────────────────────────────────────────────────
 
 // ── Leaflet Map ───────────────────────────────────────────────────────────────
+function UserListModal({title,handles,onClose,onViewProfile,following,onToggleFollow,currentUser}){
+  const[users,setUsers]=useState([]);
+  useEffect(()=>{
+    if(!handles||handles.length===0){setUsers([]);return;}
+    sb.from("users").select("handle,country,bio").in("handle",handles).then(({data})=>setUsers(data||[]));
+  },[handles]);
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,maxHeight:"75vh",display:"flex",flexDirection:"column",boxShadow:"0 -8px 40px rgba(0,0,0,0.12)"}}>
+        <div style={{padding:"16px 20px",borderBottom:"1px solid #f0f0f0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <span style={{fontSize:15,fontWeight:700,color:"#222"}}>{title} ({handles.length})</span>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:18,color:"#aaa",cursor:"pointer"}}>×</button>
+        </div>
+        <div style={{overflowY:"auto",flex:1}}>
+          {users.length===0?(
+            <div style={{padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>No hay usuarios todavía.</div>
+          ):users.map(u=>(
+            <div key={u.handle} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 20px",borderBottom:"1px solid #f9f9f9"}}>
+              <div style={{width:40,height:40,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🙋</div>
+              <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>onViewProfile(u.handle)}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:14,fontWeight:700,color:"#222"}}>{u.handle}</span>
+                  {u.country&&<span style={{fontSize:13}}>{countryFlag(u.country)}</span>}
+                </div>
+                {u.bio&&<div style={{fontSize:16,marginTop:2,letterSpacing:2}}>{u.bio}</div>}
+              </div>
+              {u.handle!==currentUser?.handle&&(
+                <button onClick={()=>onToggleFollow(u.handle)} style={{background:following.includes(u.handle)?"none":RAUSCH,border:following.includes(u.handle)?"1.5px solid #ebebeb":"none",borderRadius:20,padding:"6px 14px",fontSize:12,fontWeight:600,color:following.includes(u.handle)?"#888":"#fff",cursor:"pointer",flexShrink:0}}>
+                  {following.includes(u.handle)?"Siguiendo":"Seguir"}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const REPORT_REASONS_LIST=["Contenido ofensivo o de odio","Acoso o bullying","Spam","Información falsa","Contenido sexual inapropiado","Otro"];
 
 function ReportModalStandalone({spitId,reporterHandle,onClose}){
@@ -1764,6 +1803,9 @@ function App(){
   const[newHandle,setNewHandle]=useState("");
   const[handleError,setHandleError]=useState("");
   const[followerCount,setFollowerCount]=useState(0);
+  const[followersList,setFollowersList]=useState([]);
+  const[showFollowers,setShowFollowers]=useState(false);
+  const[showFollowing,setShowFollowing]=useState(false);
   const[showSearch,setShowSearch]=useState(false);
   const[viewProfile,setViewProfile]=useState(null);
   const[mundialFilter,setMundialFilter]=useState(false);
@@ -2404,13 +2446,13 @@ function App(){
                   <div style={{fontSize:20,fontWeight:700,color:"#222"}}>{mySpits.length}</div>
                   <div style={{fontSize:11,color:"#aaa"}}>Spits</div>
                 </div>
-                <div style={{textAlign:"center"}}>
+                <div style={{textAlign:"center",cursor:"pointer"}} onClick={()=>setShowFollowers(true)}>
                   <div style={{fontSize:20,fontWeight:700,color:"#222"}}>{followerCount}</div>
-                  <div style={{fontSize:11,color:"#aaa"}}>Seguidores</div>
+                  <div style={{fontSize:11,color:RAUSCH,fontWeight:600}}>Seguidores</div>
                 </div>
-                <div style={{textAlign:"center"}}>
+                <div style={{textAlign:"center",cursor:"pointer"}} onClick={()=>setShowFollowing(true)}>
                   <div style={{fontSize:20,fontWeight:700,color:"#222"}}>{following.length}</div>
-                  <div style={{fontSize:11,color:"#aaa"}}>Siguiendo</div>
+                  <div style={{fontSize:11,color:RAUSCH,fontWeight:600}}>Siguiendo</div>
                 </div>
               </div>
               {/* Bio */}
@@ -2590,7 +2632,7 @@ function App(){
         <button onClick={()=>setActiveTab("saved")} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
           <IconBookmark active={activeTab==="saved"}/>
         </button>
-        <button onClick={()=>{setActiveTab("profile");if(user){sb.from("spits").select("*").eq("handle",user.handle).order("created_at",{ascending:false}).then(({data})=>setMySpits(data||[]));sb.from("follows").select("id",{count:"exact"}).eq("following",user.handle).then(({count})=>setFollowerCount(count||0));sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at").eq("handle",user.handle).single().then(({data})=>{if(data){const newBio=data.bio||"";setUser(p=>({...p,bio:newBio,country:data.country||p.country||"",handle_changed_at:data.handle_changed_at||p.handle_changed_at||null}));if(!editingBio)setBioText(newBio);}});}}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
+        <button onClick={()=>{setActiveTab("profile");if(user){sb.from("spits").select("*").eq("handle",user.handle).order("created_at",{ascending:false}).then(({data})=>setMySpits(data||[]));sb.from("follows").select("follower").eq("following",user.handle).then(({data})=>{setFollowerCount(data?.length||0);setFollowersList(data?.map(f=>f.follower)||[]);});sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at").eq("handle",user.handle).single().then(({data})=>{if(data){const newBio=data.bio||"";setUser(p=>({...p,bio:newBio,country:data.country||p.country||"",handle_changed_at:data.handle_changed_at||p.handle_changed_at||null}));if(!editingBio)setBioText(newBio);}});}}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
           <IconProfile active={activeTab==="profile"}/>
         </button>
       </nav>
@@ -2634,6 +2676,16 @@ function App(){
 
       {showRecord&&<RecordModal onClose={()=>{setShowRecord(false);setMundialDefault(false);setRespitOf(null);}} currentUser={user} onSaved={loadSpits} mundialDefault={mundialDefault} respitOf={respitOf}/>}
       {showListen&&spits.length>0&&<ListenMode spits={spits} startIndex={listenStart} onClose={()=>{setShowListen(false);}} currentUser={user} following={following} onFollowToggle={toggleFollow} likedIds={likedIds} onLike={(id)=>setLikedIds(p=>new Set([...p,id]))} onUnlike={(id)=>setLikedIds(p=>{const s=new Set(p);s.delete(id);return s;})} onViewProfile={(handle)=>{setShowListen(false);setViewProfile(handle);}} savedIds={savedIds} onToggleSave={toggleSave} onRespit={(id)=>{setRespitOf(id);setShowRecord(true);}}/>}
+
+      {/* Followers modal */}
+      {showFollowers&&(
+        <UserListModal title="Seguidores" handles={followersList} onClose={()=>setShowFollowers(false)} onViewProfile={(h)=>{setShowFollowers(false);setViewProfile(h);}} following={following} onToggleFollow={toggleFollow} currentUser={user}/>
+      )}
+
+      {/* Following modal */}
+      {showFollowing&&(
+        <UserListModal title="Siguiendo" handles={following} onClose={()=>setShowFollowing(false)} onViewProfile={(h)=>{setShowFollowing(false);setViewProfile(h);}} following={following} onToggleFollow={toggleFollow} currentUser={user}/>
+      )}
     </div>
   );
 }
