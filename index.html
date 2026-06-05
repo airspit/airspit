@@ -275,11 +275,56 @@ function AuthScreen({onLogin}){
 // ── World Map SVG ─────────────────────────────────────────────────────────────
 
 // ── Leaflet Map ───────────────────────────────────────────────────────────────
-function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowToggle,likedIds=new Set(),onLike=()=>{},onUnlike=()=>{},onViewProfile=()=>{},savedIds=new Set(),onToggleSave=()=>{}}){
+const REPORT_REASONS_LIST=["Contenido ofensivo o de odio","Acoso o bullying","Spam","Información falsa","Contenido sexual inapropiado","Otro"];
+
+function ReportModalStandalone({spitId,reporterHandle,onClose}){
+  const[reason,setReason]=useState("");
+  const[sent,setSent]=useState(false);
+  const[loading,setLoading]=useState(false);
+  const send=async()=>{
+    if(!reason)return;
+    setLoading(true);
+    try{await sb.from("reports").insert({spit_id:spitId,reporter_handle:reporterHandle,reason});setSent(true);}catch{}
+    setLoading(false);
+  };
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:1200,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:"24px 24px 0 0",padding:"6px 20px 36px",width:"100%",maxWidth:480,boxShadow:"0 -8px 40px rgba(0,0,0,0.2)"}}>
+        <div style={{width:40,height:4,background:"#e0e0e0",borderRadius:2,margin:"12px auto 20px"}}/>
+        {sent?(
+          <div style={{textAlign:"center",padding:"24px 0"}}>
+            <div style={{fontSize:36,marginBottom:12}}>✅</div>
+            <div style={{fontSize:16,fontWeight:700,color:"#222",marginBottom:6}}>Reporte enviado</div>
+            <div style={{fontSize:13,color:"#aaa",marginBottom:24}}>Gracias. Revisamos cada reporte en 72 horas.</div>
+            <button onClick={onClose} style={{padding:"10px 32px",borderRadius:10,background:RAUSCH,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Cerrar</button>
+          </div>
+        ):(
+          <>
+            <div style={{fontSize:16,fontWeight:700,color:"#222",marginBottom:4}}>Reportar spit</div>
+            <div style={{fontSize:12,color:"#aaa",marginBottom:20}}>¿Por qué querés reportar este audio?</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+              {REPORT_REASONS_LIST.map(r=>(
+                <button key={r} onClick={()=>setReason(r)} style={{padding:"12px 16px",borderRadius:12,border:`1.5px solid ${reason===r?RAUSCH:"#ebebeb"}`,background:reason===r?"#fff0f3":"#fafafa",color:reason===r?RAUSCH:"#444",fontSize:13,fontWeight:reason===r?700:400,cursor:"pointer",textAlign:"left",transition:"all 0.15s"}}>
+                  {r}
+                </button>
+              ))}
+            </div>
+            <button onClick={send} disabled={!reason||loading} style={{width:"100%",padding:14,borderRadius:12,background:reason&&!loading?RAUSCH:"#f0f0f0",border:"none",color:reason&&!loading?"#fff":"#aaa",fontSize:15,fontWeight:700,cursor:reason&&!loading?"pointer":"not-allowed",transition:"all 0.2s"}}>
+              {loading?"Enviando...":"Enviar reporte"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowToggle,likedIds=new Set(),onLike=()=>{},onUnlike=()=>{},onViewProfile=()=>{},savedIds=new Set(),onToggleSave=()=>{},onRespit=()={}}){
   const[idx,setIdx]=useState(startIndex||0);
   const[animating,setAnimating]=useState(false);
   const[direction,setDirection]=useState(null);
   const[liked,setLiked]=useState(()=>{const m={};likedIds.forEach(id=>{m[id]=true;});return m;});
+  const[showReport,setShowReport]=useState(false);
   const[lastTap,setLastTap]=useState(0);
   const[playing,setPlaying]=useState(true);
   const[progress,setProgress]=useState(0);
@@ -441,6 +486,11 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
             <span onClick={e=>{e.stopPropagation();onViewProfile(spit.handle);}} style={{fontSize:20,fontWeight:800,color:"#fff",letterSpacing:-0.5,cursor:"pointer",textDecoration:"underline",textDecorationColor:"rgba(255,255,255,0.3)",textUnderlineOffset:3}}>{spit.handle}</span>
             {VERIFIED.has(spit.handle)&&<VerifiedBadge/>}
             <span style={{fontSize:16}}>{countryFlag(spit.country||"")}</span>
+            {spit.handle!==currentUser?.handle&&(
+              <button onClick={e=>{e.stopPropagation();setShowReport(true);}} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.4,display:"flex",alignItems:"center"}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </button>
+            )}
           </div>
           <div style={{fontSize:13,color:"rgba(255,255,255,0.35)"}}>{spit.duration}s</div>
         </div>
@@ -512,6 +562,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
         </button>
       </div>
 
+      {showReport&&<div style={{position:"fixed",inset:0,zIndex:1200}} onClick={e=>e.stopPropagation()}><ReportModalStandalone spitId={spit.id} reporterHandle={currentUser?.handle} onClose={()=>setShowReport(false)}/></div>}
       <style>{`@keyframes wave{from{transform:scaleY(0.3)}to{transform:scaleY(1)}}`}</style>
     </div>
   );
@@ -2051,10 +2102,11 @@ function App(){
     );
   };
 
-  const FeedCard=({s,i,savedIds,toggleSave,setListenStart,setShowListen,setViewProfile,allSpits,onRespit})=>{
+  const FeedCard=({s,i,savedIds,toggleSave,setListenStart,setShowListen,setViewProfile,allSpits,onRespit,currentUser})=>{
     const[playing,setPlaying]=useState(false);
     const[progress,setProgress]=useState(0);
     const[dur,setDur]=useState(s.duration||0);
+    const[showReport,setShowReport]=useState(false);
     const audioRef=useRef(null);
     const respits=allSpits?allSpits.filter(r=>r.respit_of===s.id):[];
 
@@ -2117,13 +2169,19 @@ function App(){
               </div>
             </div>
           )}
-          {/* Respit button */}
-          <div style={{paddingLeft:52,marginTop:10}}>
+          {/* Respit + Report buttons */}
+          <div style={{paddingLeft:52,marginTop:10,display:"flex",alignItems:"center",gap:8}}>
             <button onClick={e=>{e.stopPropagation();onRespit(s.id);}} style={{background:"none",border:"1px solid #ebebeb",borderRadius:20,padding:"4px 12px",fontSize:11,color:"#888",cursor:"pointer",fontWeight:600,display:"flex",alignItems:"center",gap:4}}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
               Respit {respits.length>0&&<span style={{background:"#f0f0f0",borderRadius:10,padding:"0 6px",fontSize:10}}>{respits.length}</span>}
             </button>
+            {s.handle!==currentUser?.handle&&(
+              <button onClick={e=>{e.stopPropagation();setShowReport(true);}} style={{background:"none",border:"none",padding:"4px 6px",cursor:"pointer",display:"flex",alignItems:"center"}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </button>
+            )}
           </div>
+          {showReport&&<ReportModalStandalone spitId={s.id} reporterHandle={currentUser?.handle} onClose={()=>setShowReport(false)}/>}
         </div>
         {/* Respits */}
         {respits.length>0&&(
@@ -2144,7 +2202,7 @@ function App(){
         {groups.map(g=>{
           if(g.type==="thread")return <ThreadCard key={g.id} thread={g.spits} firstIndex={g.firstIndex}/>;
           const s=g.spit;const i=g.index;
-          return <FeedCard key={s.id} s={s} i={i} savedIds={savedIds} toggleSave={toggleSave} setListenStart={setListenStart} setShowListen={setShowListen} setViewProfile={setViewProfile} allSpits={feedSpits} onRespit={(id)=>{setRespitOf(id);setShowRecord(true);}}/>;
+          return <FeedCard key={s.id} s={s} i={i} savedIds={savedIds} toggleSave={toggleSave} setListenStart={setListenStart} setShowListen={setShowListen} setViewProfile={setViewProfile} allSpits={feedSpits} onRespit={(id)=>{setRespitOf(id);setShowRecord(true);}} currentUser={user}/>;
         })}
       </div>
     );
