@@ -317,10 +317,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
     const a=new Audio(spit.audio_url);
     a.onloadedmetadata=()=>{if(isFinite(a.duration)&&a.duration>0)setDuration(a.duration);};
     a.ondurationchange=()=>{if(isFinite(a.duration)&&a.duration>0)setDuration(a.duration);};
-    a.ontimeupdate=()=>{
-      setProgress(a.currentTime);
-      if(isFinite(a.duration)&&a.duration>0)setDuration(a.duration);
-    };
+    a.ontimeupdate=()=>{setProgress(a.currentTime);if(isFinite(a.duration)&&a.duration>0)setDuration(a.duration);};
     a.onended=()=>{setPlaying(false);if(idx<spits.length-1)setTimeout(()=>goTo(idx+1,"up"),800);};
     a.play().catch(()=>setPlaying(false));
     audioRef.current=a;
@@ -333,9 +330,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
     else audioRef.current.pause();
   },[playing]);
 
-  useEffect(()=>{
-    if(audioRef.current)audioRef.current.playbackRate=speed;
-  },[speed]);
+  useEffect(()=>{if(audioRef.current)audioRef.current.playbackRate=speed;},[speed]);
 
   const goTo=(newIdx,dir)=>{
     if(animating||newIdx<0||newIdx>=spits.length)return;
@@ -473,13 +468,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
           <button onClick={()=>goTo(idx-1,"down")} disabled={idx===0} style={{background:"none",border:"none",cursor:idx===0?"not-allowed":"pointer",opacity:idx===0?0.2:0.6,color:"#fff",fontSize:24,display:"flex",alignItems:"center"}}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
           </button>
-          <button onClick={()=>setPlaying(p=>!p)} style={{
-            width:64,height:64,borderRadius:"50%",border:"none",cursor:"pointer",
-            background:theme.accent,
-            boxShadow:`0 0 32px ${theme.accent}66`,
-            display:"flex",alignItems:"center",justifyContent:"center",
-            fontSize:24,color:"#fff",transition:"transform 0.15s",
-          }}
+          <button onClick={()=>setPlaying(p=>!p)} style={{width:64,height:64,borderRadius:"50%",border:"none",cursor:"pointer",background:theme.accent,boxShadow:`0 0 32px ${theme.accent}66`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,color:"#fff",transition:"transform 0.15s"}}
             onMouseOver={e=>e.currentTarget.style.transform="scale(1.06)"}
             onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>
             {playing?"⏸":"▶"}
@@ -489,22 +478,17 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
           </button>
         </div>
 
-        {/* Speed selector */}
+        {/* Speed */}
         <div style={{display:"flex",gap:8,marginTop:20}} onClick={e=>e.stopPropagation()}>
-          {[1,1.5,2].map(s=>(
-            <button key={s} onClick={()=>setSpeed(s)} style={{
-              padding:"5px 14px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,
-              background:speed===s?"rgba(255,255,255,0.25)":"rgba(255,255,255,0.08)",
-              color:speed===s?"#fff":"rgba(255,255,255,0.45)",
-              transition:"all 0.2s",backdropFilter:"blur(8px)",
-            }}>
-              {s===1?"1×":s+"×"}
+          {[1,1.5,2].map(sp=>(
+            <button key={sp} onClick={()=>setSpeed(sp)} style={{padding:"5px 14px",borderRadius:20,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,background:speed===sp?"rgba(255,255,255,0.25)":"rgba(255,255,255,0.08)",color:speed===sp?"#fff":"rgba(255,255,255,0.45)",transition:"all 0.2s"}}>
+              {sp===1?"1×":sp+"×"}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Like + Save buttons */}
+      {/* Like + Save */}
       <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:24,paddingBottom:36,zIndex:10}} onClick={e=>e.stopPropagation()}>
         <button onClick={e=>{e.stopPropagation();doLike();}} style={{background:"none",border:"none",cursor:"pointer",padding:12,display:"flex",alignItems:"center",justifyContent:"center",transition:"transform 0.15s",outline:"none",WebkitTapHighlightColor:"transparent"}}
           onMouseOver={e=>e.currentTarget.style.transform="scale(1.1)"}
@@ -522,9 +506,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
         </button>
       </div>
 
-      <style>{`
-        @keyframes wave{from{transform:scaleY(0.3)}to{transform:scaleY(1)}}
-      `}</style>
+      <style>{`@keyframes wave{from{transform:scaleY(0.3)}to{transform:scaleY(1)}}`}</style>
     </div>
   );
 }
@@ -1998,6 +1980,74 @@ function App(){
     );
   };
 
+  const FeedCard=({s,i,savedIds,toggleSave,setListenStart,setShowListen,setViewProfile})=>{
+    const[playing,setPlaying]=useState(false);
+    const[progress,setProgress]=useState(0);
+    const[dur,setDur]=useState(s.duration||0);
+    const audioRef=useRef(null);
+
+    const togglePlay=e=>{
+      e.stopPropagation();
+      if(!s.audio_url)return;
+      if(!audioRef.current){
+        const a=new Audio(s.audio_url);
+        a.onloadedmetadata=()=>{if(isFinite(a.duration)&&a.duration>0)setDur(a.duration);};
+        a.ontimeupdate=()=>setProgress(a.currentTime);
+        a.onended=()=>{setPlaying(false);setProgress(0);audioRef.current=null;};
+        audioRef.current=a;
+        a.play().catch(()=>setPlaying(false));
+        setPlaying(true);
+      } else if(playing){
+        audioRef.current.pause();
+        setPlaying(false);
+      } else {
+        audioRef.current.play().catch(()=>setPlaying(false));
+        setPlaying(true);
+      }
+    };
+
+    useEffect(()=>()=>{if(audioRef.current){audioRef.current.pause();audioRef.current=null;}},[]);
+
+    const pct=dur>0?(progress/dur)*100:0;
+    const fmt=t=>{const m=Math.floor(t/60);const sc=Math.floor(t%60);return`${m}:${sc<10?"0":""}${sc}`;};
+
+    return(
+      <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"12px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:40,height:40,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🙋</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+              <span onClick={e=>{e.stopPropagation();setViewProfile(s.handle);}} style={{fontSize:13,fontWeight:700,color:"#222",cursor:"pointer"}}>{s.handle}</span>
+              {VERIFIED.includes(s.handle)&&<VerifiedBadge/>}
+              <span style={{fontSize:12}}>{getFlag(s)}</span>
+              {s.emotion&&<span style={{fontSize:12}}>{s.emotion}</span>}
+            </div>
+            <div style={{fontSize:11,color:"#aaa"}}>{s.duration}s{s.audio_url?" · 🔊":""}{s.category&&CATS[s.category]?" · "+CATS[s.category]:""}</div>
+          </div>
+          <button onClick={e=>{e.stopPropagation();toggleSave(s.id);}} style={{background:"none",border:"none",cursor:"pointer",padding:6,display:"flex",alignItems:"center",flexShrink:0}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill={savedIds.has(s.id)?RAUSCH:"none"} stroke={savedIds.has(s.id)?RAUSCH:"#ccc"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/>
+            </svg>
+          </button>
+          <button onClick={togglePlay} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,56,92,0.08)",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <span style={{color:RAUSCH,fontSize:14}}>{playing?"⏸":"▶"}</span>
+          </button>
+        </div>
+        {playing&&(
+          <div style={{marginTop:10,paddingLeft:52}}>
+            <div style={{height:3,background:"#f0f0f0",borderRadius:2,overflow:"hidden"}}>
+              <div style={{height:"100%",background:RAUSCH,borderRadius:2,width:`${pct}%`,transition:"width 0.25s linear"}}/>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+              <span style={{fontSize:10,color:"#bbb"}}>{fmt(progress)}</span>
+              <span style={{fontSize:10,color:"#bbb"}}>{fmt(dur)}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderFeed=(feedSpits,emptyMsg)=>{
     if(feedSpits.length===0)return <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:14}}>{emptyMsg}</div>;
     const groups=groupSpits(feedSpits);
@@ -2006,27 +2056,7 @@ function App(){
         {groups.map(g=>{
           if(g.type==="thread")return <ThreadCard key={g.id} thread={g.spits} firstIndex={g.firstIndex}/>;
           const s=g.spit;const i=g.index;
-          return(
-            <div key={s.id} style={{background:"#fff",borderRadius:14,padding:"12px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}
-              onClick={()=>{setListenStart(i);setShowListen(true);}}>
-              <div style={{width:40,height:40,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{"🙋"}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                  <span onClick={e=>{e.stopPropagation();setViewProfile(s.handle);}} style={{fontSize:13,fontWeight:700,color:"#222",cursor:"pointer"}}>{s.handle}</span>
-                  {VERIFIED.includes(s.handle)&&<VerifiedBadge/>}
-                  <span style={{fontSize:12}}>{getFlag(s)}</span>
-                  {s.emotion&&<span style={{fontSize:12}}>{s.emotion}</span>}
-                </div>
-                <div style={{fontSize:11,color:"#aaa"}}>{s.duration}s{s.audio_url?" · 🔊":""}{s.category&&CATS[s.category]?" · "+CATS[s.category]:""}</div>
-              </div>
-              <button onClick={e=>{e.stopPropagation();toggleSave(s.id);}} style={{background:"none",border:"none",cursor:"pointer",padding:6,display:"flex",alignItems:"center",flexShrink:0}}>
-                <IconBookmark active={savedIds.has(s.id)}/>
-              </button>
-              <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,56,92,0.08)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <span style={{color:RAUSCH,fontSize:14}}>▶</span>
-              </div>
-            </div>
-          );
+          return <FeedCard key={s.id} s={s} i={i} savedIds={savedIds} toggleSave={toggleSave} setListenStart={setListenStart} setShowListen={setShowListen} setViewProfile={setViewProfile}/>;
         })}
       </div>
     );
@@ -2206,7 +2236,7 @@ function App(){
         {activeTab==="saved"&&(
           <div>
             <div style={{fontSize:12,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10,paddingLeft:4}}>Guardados</div>
-            {renderFeed(spits.filter(s=>savedIds.has(s.id)),"Todavía no guardaste ningún spit. Tocá el 🔖 en el feed o en el modo escucha.")}
+            {renderFeed(spits.filter(s=>savedIds.has(s.id)),<span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,color:"#bbb",fontSize:13}}>Todavía no guardaste ningún spit. Tocá el <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg> en el feed o en el modo escucha.</span>)}
           </div>
         )}
 
