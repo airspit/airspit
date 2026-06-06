@@ -13,7 +13,10 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f7f7}
-@keyframes pulse{0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)}50%{opacity:.75;transform:translate(-50%,-50%) scale(1.25)}}
+@keyframes slideInFromBottom{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes slideInFromTop{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+@keyframes slideOutToTop{from{transform:translateY(0)}to{transform:translateY(-100%)}}
+@keyframes slideOutToBottom{from{transform:translateY(0)}to{transform:translateY(100%)}}
 @keyframes wave{from{transform:scaleY(0.3)}to{transform:scaleY(1)}}
 @keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 @keyframes sheetUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -463,7 +466,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const goTo=(newIdx,dir)=>{
     if(animating||newIdx<0||newIdx>=spits.length)return;
     setDirection(dir);setAnimating(true);
-    setTimeout(()=>{setIdx(newIdx);setDirection(null);setAnimating(false);},350);
+    setTimeout(()=>{setIdx(newIdx);setAnimating(false);},320);
   };
 
   const next=()=>goTo(idx+1,"up");
@@ -536,11 +539,12 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
       </div>
 
       {/* Main content */}
-      <div style={{
+      <div key={idx} style={{
         flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
         padding:"0 32px",
-        transform:animating?(direction==="up"?"translateY(-100%)":"translateY(100%)"):"translateY(0)",
-        transition:"transform 0.35s cubic-bezier(0.4,0,0.2,1)",
+        animation:animating
+          ?(direction==="up"?"slideOutToTop 0.32s ease forwards":"slideOutToBottom 0.32s ease forwards")
+          :(direction==="up"?"slideInFromBottom 0.32s ease forwards":"slideInFromTop 0.32s ease forwards"),
       }}>
 
         {/* Category + emotion */}
