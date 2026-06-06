@@ -2804,6 +2804,7 @@ function App(){
         </div>
       )}
       {/* Followers modal */}
+      {showFollowers&&(
         <UserListModal title="Seguidores" handles={followersList} onClose={()=>setShowFollowers(false)} onViewProfile={(h)=>{setShowFollowers(false);setViewProfile(h);}} following={following} onToggleFollow={toggleFollow} currentUser={user}/>
       )}
 
