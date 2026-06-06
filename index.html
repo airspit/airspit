@@ -347,7 +347,9 @@ function AvatarEditor({user,onSave,onBack}){
   const icons=[{id:"waves",label:"Ondas"},{id:"eq",label:"Ecualizador"},{id:"sine",label:"Senoidal"},{id:"pulse",label:"Pulso"},{id:"sym",label:"Simétrica"}];
   const colors=["#FF385C","#e84393","#FC642D","#f0c030","#7ec850","#00A699","#4a90d9","#9b59b6","#333333","#888888"];
   const[selIcon,setSelIcon]=useState(user?.avatar_icon||"waves");
-  const[selColor,setSelColor]=useState(user?.avatar_color||"#FF385C");
+  const hasCustomColor=user?.avatar_color&&colors.includes(user.avatar_color);
+  const[selColor,setSelColor]=useState(hasCustomColor?user.avatar_color:null);
+  const previewColor=selColor||handleColor(user?.handle||"");
   return(
     <>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
@@ -355,13 +357,13 @@ function AvatarEditor({user,onSave,onBack}){
         <div style={{fontSize:15,fontWeight:700,color:"#222"}}>Editar avatar</div>
       </div>
       <div style={{display:"flex",justifyContent:"center",marginBottom:20}}>
-        <Avatar icon={selIcon} color={selColor} size={80}/>
+        <Avatar icon={selIcon} color={previewColor} size={80}/>
       </div>
       <div style={{fontSize:11,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10}}>Diseño</div>
       <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
         {icons.map(ic=>(
           <button key={ic.id} onClick={()=>setSelIcon(ic.id)} style={{flex:"1 1 calc(33% - 8px)",padding:"10px 6px",borderRadius:12,border:`1.5px solid ${selIcon===ic.id?RAUSCH:"#ebebeb"}`,background:selIcon===ic.id?"#fff0f3":"#fafafa",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-            <Avatar icon={ic.id} color={selColor} size={36}/>
+            <Avatar icon={ic.id} color={previewColor} size={36}/>
             <span style={{fontSize:10,fontWeight:600,color:selIcon===ic.id?RAUSCH:"#888"}}>{ic.label}</span>
           </button>
         ))}
@@ -369,10 +371,11 @@ function AvatarEditor({user,onSave,onBack}){
       <div style={{fontSize:11,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10}}>Color</div>
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
         {colors.map(c=>(
-          <button key={c} onClick={()=>setSelColor(c)} style={{width:36,height:36,borderRadius:"50%",background:c,opacity:0.7,border:`2.5px solid ${selColor===c?"#222":"transparent"}`,cursor:"pointer",padding:0}}/>
+          <button key={c} onClick={()=>setSelColor(selColor===c?null:c)} style={{width:36,height:36,borderRadius:"50%",background:c,opacity:0.7,border:`2.5px solid ${selColor===c?"#222":"transparent"}`,cursor:"pointer",padding:0}}/>
         ))}
       </div>
-      <button onClick={()=>onSave(selIcon,selColor)} style={{width:"100%",padding:14,borderRadius:12,background:RAUSCH,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Guardar</button>
+      {!selColor&&<div style={{fontSize:11,color:"#bbb",marginBottom:12,textAlign:"center"}}>Color automático según tu nickname</div>}
+      <button onClick={()=>onSave(selIcon,selColor||handleColor(user?.handle||""))} style={{width:"100%",padding:14,borderRadius:12,background:RAUSCH,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Guardar</button>
     </>
   );
 }
