@@ -2086,18 +2086,31 @@ function App(){
     if(data)setLikedIds(new Set(data.map(r=>r.spit_id)));
   };
 
+  const[savedSpits,setSavedSpits]=useState([]);
+
   const loadSavedIds=async(handle)=>{
     const{data}=await sb.from("saves").select("spit_id").eq("handle",handle);
     if(data)setSavedIds(new Set(data.map(r=>r.spit_id)));
+  };
+
+  const loadSavedSpits=async(handle)=>{
+    const{data:saves}=await sb.from("saves").select("spit_id").eq("handle",handle);
+    if(!saves||saves.length===0){setSavedSpits([]);return;}
+    const ids=saves.map(r=>r.spit_id);
+    const{data:spitsData}=await sb.from("spits").select("*").in("id",ids).order("created_at",{ascending:false});
+    if(spitsData)setSavedSpits(spitsData);
   };
 
   const toggleSave=async(spitId)=>{
     if(!user?.handle)return;
     if(savedIds.has(spitId)){
       setSavedIds(p=>{const s=new Set(p);s.delete(spitId);return s;});
+      setSavedSpits(p=>p.filter(s=>s.id!==spitId));
       await sb.from("saves").delete().eq("handle",user.handle).eq("spit_id",spitId);
     }else{
       setSavedIds(p=>new Set([...p,spitId]));
+      const spit=spits.find(s=>s.id===spitId);
+      if(spit)setSavedSpits(p=>[spit,...p]);
       await sb.from("saves").insert({handle:user.handle,spit_id:spitId});
     }
   };
@@ -2595,7 +2608,7 @@ function App(){
         {activeTab==="saved"&&(
           <div>
             <div style={{fontSize:12,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10,paddingLeft:4}}>Guardados</div>
-            {renderFeed(spits.filter(s=>savedIds.has(s.id)),<span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,color:"#bbb",fontSize:13}}>Todavía no guardaste ningún spit. Tocá el <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg> en el feed o en el modo escucha.</span>)}
+            {renderFeed(savedSpits,<span style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,color:"#bbb",fontSize:13}}>Todavía no guardaste ningún spit. Tocá el <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg> en el feed o en el modo escucha.</span>)}
           </div>
         )}
 
@@ -2760,7 +2773,7 @@ function App(){
         <button onClick={()=>setShowRecord(true)} style={{background:RAUSCH,border:"none",borderRadius:"50%",width:52,height:52,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:"0 4px 16px rgba(255,56,92,0.4)",transform:"translateY(-8px)"}}>
           <IconMic/>
         </button>
-        <button onClick={()=>setActiveTab("saved")} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
+        <button onClick={()=>{setActiveTab("saved");if(user?.handle)loadSavedSpits(user.handle);}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
           <IconBookmark active={activeTab==="saved"}/>
         </button>
         <button onClick={()=>{setActiveTab("profile");if(user){sb.from("spits").select("*").eq("handle",user.handle).order("created_at",{ascending:false}).then(({data})=>setMySpits(data||[]));sb.from("follows").select("follower").eq("following",user.handle).then(({data})=>{setFollowerCount(data?.length||0);setFollowersList(data?.map(f=>f.follower)||[]);});sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at,avatar_icon,avatar_color").eq("handle",user.handle).single().then(({data})=>{if(data){const newBio=data.bio||"";setUser(p=>({...p,bio:newBio,country:data.country||p.country||"",handle_changed_at:data.handle_changed_at||p.handle_changed_at||null,avatar_icon:data.avatar_icon||"waves",avatar_color:data.avatar_color||"#FF385C"}));if(!editingBio)setBioText(newBio);}});}}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
