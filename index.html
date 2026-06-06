@@ -466,7 +466,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const isFollowing=following?.includes(spit.handle);
   const pct=duration>0?(progress/duration)*100:0;
   const fmt=s=>isFinite(s)&&s>=0?`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`:"0:00";
-  const CATS_L={amor:"Amor / Desamor (Puterío)",chismes:"Chismes que no puedo guardar",jefes:"Jefes / Trabajo (Lo que no podés decir en la cara)",bronca:"Quejas / Broncas / Frustraciones",anecdotas:"Cosas que me pasaron / Anécdotas",injusticias:"Injusticias / Indignación",alegria:"Buenas noticias / Alegría"};
+  const CATS_L={amor:"Amor / Desamor (Puterío)",chismes:"Chismes que no puedo guardar",jefes:"Jefes / Trabajo (Lo que no podés decir en la cara)",bronca:"Quejas / Broncas / Frustraciones",anecdotas:"Pasaron cosas / Anécdotas",injusticias:"Injusticias / Indignación",alegria:"Buenas noticias / Alegría"};
 
   return(
     <div style={{
@@ -1032,12 +1032,12 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
         ):(
           <div style={{paddingBottom:8}}>
             {/* Effect selector */}
-            <div style={{marginBottom:20}}>
+            <div style={{marginBottom:8}}>
               <div style={{fontSize:11,fontWeight:600,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Elegí tu voz</div>
               <div style={{display:"flex",gap:8}}>
                 {Object.entries(EFFECTS).map(([key,cfg])=>(
                   <button key={key} onClick={()=>{stopPreview();setEffect(key);}} style={{
-                    flex:1,padding:"12px 6px",borderRadius:10,cursor:"pointer",
+                    flex:1,padding:"10px 6px",borderRadius:10,cursor:"pointer",
                     background:effect===key?"#fff0f3":"#f7f7f7",
                     border:`1.5px solid ${effect===key?RAUSCH:"#e8e8e8"}`,
                     transition:"all 0.15s",textAlign:"center",
@@ -1050,16 +1050,16 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
 
             {/* Preview button */}
             <button onClick={previewing?stopPreview:preview} style={{
-              width:"100%",padding:10,borderRadius:10,marginBottom:8,
+              width:"100%",padding:8,borderRadius:10,marginBottom:4,
               background:previewing?"#f0f0f0":"#f7f7f7",
               border:`1.5px solid ${previewing?RAUSCH:"#e8e8e8"}`,
-              color:previewing?RAUSCH:"#555",fontSize:14,fontWeight:600,cursor:"pointer",
+              color:previewing?RAUSCH:"#555",fontSize:13,fontWeight:600,cursor:"pointer",
               display:"flex",alignItems:"center",justifyContent:"center",gap:8,
             }}>
               {previewing?(
-                <><span style={{fontSize:16}}>⏹</span> Parar preview</>
+                <><span style={{fontSize:14}}>⏹</span> Parar preview</>
               ):(
-                <><span style={{fontSize:16}}>▶</span> Escuchar antes de publicar</>
+                <><span style={{fontSize:14}}>▶</span> Escuchar antes de publicar</>
               )}
             </button>
 
@@ -1155,7 +1155,7 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
                   {id:"chismes",label:"Chismes que no puedo guardar"},
                   {id:"jefes",label:"Jefes / Trabajo (Lo que no podés decir en la cara)"},
                   {id:"bronca",label:"Quejas / Broncas / Frustraciones"},
-                  {id:"anecdotas",label:"Cosas que me pasaron / Anécdotas"},
+                  {id:"anecdotas",label:"Pasaron cosas / Anécdotas"},
                   {id:"injusticias",label:"Injusticias / Indignación"},
                   {id:"alegria",label:"Buenas noticias / Alegría"},
                 ].map(c=>(
