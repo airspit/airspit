@@ -1160,12 +1160,12 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
                   {id:"alegria",label:"ALEGRÍA / Buenas noticias"},
                 ].map(c=>(
                   <button key={c.id} onClick={()=>setCategory(c.id)} style={{
-                    flex:"1 1 calc(50% - 4px)",padding:"12px 10px",borderRadius:12,cursor:"pointer",
+                    flex:"1 1 calc(50% - 4px)",padding:"10px 8px",borderRadius:12,cursor:"pointer",
                     background:category===c.id?"#fff0f3":"#f7f7f7",
                     border:`1.5px solid ${category===c.id?RAUSCH:"#e8e8e8"}`,
                     transition:"all 0.15s",textAlign:"center",
                   }}>
-                    <div style={{fontSize:12,fontWeight:600,color:category===c.id?RAUSCH:"#555",lineHeight:1.3}}>{c.label}</div>
+                    <div style={{fontSize:11,fontWeight:600,color:category===c.id?RAUSCH:"#555",lineHeight:1.3}}>{c.label}</div>
                   </button>
                 ))}
               </div>
