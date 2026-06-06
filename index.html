@@ -539,9 +539,8 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
       <div style={{
         flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
         padding:"0 32px",
-        transform:animating?(direction==="up"?"translateY(-30px)":"translateY(30px)"):"translateY(0)",
-        opacity:animating?0:1,
-        transition:"transform 0.35s ease, opacity 0.35s ease",
+        transform:animating?(direction==="up"?"translateY(-100%)":"translateY(100%)"):"translateY(0)",
+        transition:"transform 0.35s cubic-bezier(0.4,0,0.2,1)",
       }}>
 
         {/* Category + emotion */}
