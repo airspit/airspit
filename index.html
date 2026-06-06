@@ -508,7 +508,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const isFollowing=following?.includes(spit.handle);
   const pct=duration>0?(progress/duration)*100:0;
   const fmt=s=>isFinite(s)&&s>=0?`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`:"0:00";
-  const CATS_SHORT={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
+  const CATS_SHORT={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
   const CATS_L={amor:"AMOR / Desamor (Puterío)",chismes:"CHISMES que no puedo guardar",jefes:"JEFES / Trabajo",bronca:"QUEJAS / Broncas / Frustraciones",anecdotas:"ANÉCDOTAS / Pasaron cosas",injusticias:"INJUSTICIAS / Indignación",alegria:"ALEGRÍA / Buenas noticias"};
 
   return(
@@ -1646,7 +1646,7 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
   const[followerCount,setFollowerCount]=useState(0);
   const[followingCount,setFollowingCount]=useState(0);
   const[loading,setLoading]=useState(true);
-  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
+  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
 
   useEffect(()=>{
     const load=async()=>{
@@ -2098,7 +2098,7 @@ function App(){
   );
 
   // Tab content renderers
-  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
+  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
 
   const groupSpits=(feedSpits)=>{
     const groups=[];
@@ -2606,7 +2606,7 @@ function App(){
             {mySpits.length===0?(
               <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>Todavía no escupiste nada.</div>
             ):(()=>{
-              const CATS_P={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
+              const CATS_P={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
               const seen=new Set();
               const groups=[];
               mySpits.forEach(s=>{
