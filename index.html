@@ -275,6 +275,41 @@ function AuthScreen({onLogin}){
 // ── World Map SVG ─────────────────────────────────────────────────────────────
 
 // ── Leaflet Map ───────────────────────────────────────────────────────────────
+function ListenPicker({onSelect,onClose}){
+  const cats=[
+    {id:null,label:"Todos los spits"},
+    {id:"amor",label:"AMOR / Desamor"},
+    {id:"chismes",label:"CHISMES"},
+    {id:"jefes",label:"JEFES / Trabajo"},
+    {id:"bronca",label:"QUEJAS / Broncas"},
+    {id:"anecdotas",label:"ANÉCDOTAS"},
+    {id:"injusticias",label:"INJUSTICIAS"},
+    {id:"alegria",label:"ALEGRÍA"},
+  ];
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,boxShadow:"0 -8px 40px rgba(0,0,0,0.12)",padding:"6px 20px 36px"}}>
+        <div style={{width:40,height:4,background:"#e0e0e0",borderRadius:2,margin:"12px auto 20px"}}/>
+        <div style={{fontSize:15,fontWeight:700,color:"#222",marginBottom:4}}>¿Qué querés escuchar?</div>
+        <div style={{fontSize:12,color:"#aaa",marginBottom:20}}>Elegí una categoría para entrar en ese mood.</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {cats.map(c=>(
+            <button key={String(c.id)} onClick={()=>onSelect(c.id)} style={{
+              padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",
+              background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,
+              cursor:"pointer",textAlign:"left",transition:"all 0.15s",
+            }}
+              onMouseOver={e=>{e.currentTarget.style.background="#fff0f3";e.currentTarget.style.borderColor=RAUSCH;e.currentTarget.style.color=RAUSCH;}}
+              onMouseOut={e=>{e.currentTarget.style.background="#fafafa";e.currentTarget.style.borderColor="#ebebeb";e.currentTarget.style.color="#333";}}>
+              {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UserListModal({title,handles,onClose,onViewProfile,following,onToggleFollow,currentUser}){
   const[users,setUsers]=useState([]);
   useEffect(()=>{
@@ -466,6 +501,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const isFollowing=following?.includes(spit.handle);
   const pct=duration>0?(progress/duration)*100:0;
   const fmt=s=>isFinite(s)&&s>=0?`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`:"0:00";
+  const CATS_SHORT={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
   const CATS_L={amor:"AMOR / Desamor (Puterío)",chismes:"CHISMES que no puedo guardar",jefes:"JEFES / Trabajo",bronca:"QUEJAS / Broncas / Frustraciones",anecdotas:"ANÉCDOTAS / Pasaron cosas",injusticias:"INJUSTICIAS / Indignación",alegria:"ALEGRÍA / Buenas noticias"};
 
   return(
@@ -503,7 +539,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
 
         {/* Category + emotion */}
         <div style={{display:"flex",gap:10,marginBottom:32,alignItems:"center"}}>
-          {spit.category&&<span style={{fontSize:13,fontWeight:700,color:theme.accent,background:"rgba(255,255,255,0.08)",padding:"5px 14px",borderRadius:20,backdropFilter:"blur(8px)"}}>{CATS_L[spit.category]}</span>}
+          {spit.category&&<span style={{fontSize:13,fontWeight:700,color:theme.accent,background:"rgba(255,255,255,0.08)",padding:"5px 14px",borderRadius:20,backdropFilter:"blur(8px)"}}>{CATS_SHORT[spit.category]||spit.category}</span>}
           {spit.emotion&&<span style={{fontSize:20}}>{spit.emotion}</span>}
         </div>
 
@@ -1800,6 +1836,8 @@ function App(){
   const[mySpits,setMySpits]=useState([]);
   const[showListen,setShowListen]=useState(false);
   const[listenStart,setListenStart]=useState(0);
+  const[showListenPicker,setShowListenPicker]=useState(false);
+  const[listenCategory,setListenCategory]=useState(null);
   const[showTerms,setShowTerms]=useState(false);
   const[showPrivacy,setShowPrivacy]=useState(false);
   const[showCommunity,setShowCommunity]=useState(false);
@@ -2375,8 +2413,8 @@ function App(){
                   <div style={{fontSize:12,color:"#aaa",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Voces en el mundo</div>
                   <div style={{fontSize:36,fontWeight:800,letterSpacing:-1.5,color:"#222",lineHeight:1}}>{spits.length}</div>
                 </div>
-                <button onClick={()=>{setListenStart(0);setShowListen(true);}} style={{background:RAUSCH,border:"none",color:"#fff",padding:"12px 20px",borderRadius:12,cursor:"pointer",fontSize:14,fontWeight:700,boxShadow:"0 4px 12px rgba(255,56,92,0.35)",display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:18}}>▶</span> Escuchar todo
+                <button onClick={()=>setShowListenPicker(true)} style={{background:RAUSCH,border:"none",color:"#fff",padding:"12px 20px",borderRadius:12,cursor:"pointer",fontSize:14,fontWeight:700,boxShadow:"0 4px 12px rgba(255,56,92,0.35)",display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:18}}>▶</span> Escuchar
                 </button>
               </div>
               {mood&&mood.some(m=>m.pct>0)&&(
@@ -2692,7 +2730,19 @@ function App(){
       )}
 
       {showRecord&&<RecordModal onClose={()=>{setShowRecord(false);setMundialDefault(false);setRespitOf(null);}} currentUser={user} onSaved={loadSpits} mundialDefault={mundialDefault} respitOf={respitOf}/>}
-      {showListen&&spits.length>0&&<ListenMode spits={spits} startIndex={listenStart} onClose={()=>{setShowListen(false);}} currentUser={user} following={following} onFollowToggle={toggleFollow} likedIds={likedIds} onLike={(id)=>setLikedIds(p=>new Set([...p,id]))} onUnlike={(id)=>setLikedIds(p=>{const s=new Set(p);s.delete(id);return s;})} onViewProfile={(handle)=>{setShowListen(false);setViewProfile(handle);}} savedIds={savedIds} onToggleSave={toggleSave} onRespit={(id)=>{setRespitOf(id);setShowRecord(true);}}/>}
+      {showListenPicker&&(
+        <ListenPicker onClose={()=>setShowListenPicker(false)} onSelect={(cat)=>{
+          setListenCategory(cat);
+          setListenStart(0);
+          setShowListenPicker(false);
+          setShowListen(true);
+        }}/>
+      )}
+
+      {showListen&&spits.length>0&&(()=>{
+        const filtered=listenCategory?spits.filter(s=>s.category===listenCategory&&!s.respit_of):spits.filter(s=>!s.respit_of);
+        return filtered.length>0?<ListenMode spits={filtered} startIndex={Math.min(listenStart,filtered.length-1)} onClose={()=>{setShowListen(false);setListenCategory(null);}} currentUser={user} following={following} onFollowToggle={toggleFollow} likedIds={likedIds} onLike={(id)=>setLikedIds(p=>new Set([...p,id]))} onUnlike={(id)=>setLikedIds(p=>{const s=new Set(p);s.delete(id);return s;})} onViewProfile={(handle)=>{setShowListen(false);setViewProfile(handle);}} savedIds={savedIds} onToggleSave={toggleSave} onRespit={(id)=>{setRespitOf(id);setShowRecord(true);}}/> : null;
+      })()}
 
       {/* Followers modal */}
       {showFollowers&&(
