@@ -466,7 +466,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const isFollowing=following?.includes(spit.handle);
   const pct=duration>0?(progress/duration)*100:0;
   const fmt=s=>isFinite(s)&&s>=0?`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`:"0:00";
-  const CATS_L={amor:"Amor / Desamor (Puterío)",chismes:"Chismes que no puedo guardar",jefes:"Jefes / Trabajo (Lo que no podés decir en la cara)",bronca:"Quejas / Broncas / Frustraciones",anecdotas:"Pasaron cosas / Anécdotas",injusticias:"Injusticias / Indignación",alegria:"Buenas noticias / Alegría"};
+  const CATS_L={amor:"AMOR / Desamor (Puterío)",chismes:"CHISMES que no puedo guardar",jefes:"JEFES / Trabajo",bronca:"QUEJAS / Broncas / Frustraciones",anecdotas:"ANÉCDOTAS / Pasaron cosas",injusticias:"INJUSTICIAS / Indignación",alegria:"ALEGRÍA / Buenas noticias"};
 
   return(
     <div style={{
@@ -1151,13 +1151,13 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
               <div style={{fontSize:11,fontWeight:600,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Categoría <span style={{color:RAUSCH}}>*</span></div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {[
-                  {id:"amor",label:"Amor / Desamor (Puterío)"},
-                  {id:"chismes",label:"Chismes que no puedo guardar"},
-                  {id:"jefes",label:"Jefes / Trabajo (Lo que no podés decir en la cara)"},
-                  {id:"bronca",label:"Quejas / Broncas / Frustraciones"},
-                  {id:"anecdotas",label:"Pasaron cosas / Anécdotas"},
-                  {id:"injusticias",label:"Injusticias / Indignación"},
-                  {id:"alegria",label:"Buenas noticias / Alegría"},
+                  {id:"amor",label:"AMOR / Desamor (Puterío)"},
+                  {id:"chismes",label:"CHISMES que no puedo guardar"},
+                  {id:"jefes",label:"JEFES / Trabajo"},
+                  {id:"bronca",label:"QUEJAS / Broncas / Frustraciones"},
+                  {id:"anecdotas",label:"ANÉCDOTAS / Pasaron cosas"},
+                  {id:"injusticias",label:"INJUSTICIAS / Indignación"},
+                  {id:"alegria",label:"ALEGRÍA / Buenas noticias"},
                 ].map(c=>(
                   <button key={c.id} onClick={()=>setCategory(c.id)} style={{
                     flex:"1 1 calc(50% - 4px)",padding:"12px 10px",borderRadius:12,cursor:"pointer",
