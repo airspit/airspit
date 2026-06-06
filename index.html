@@ -278,6 +278,71 @@ function AuthScreen({onLogin}){
 // ── World Map SVG ─────────────────────────────────────────────────────────────
 
 // ── Leaflet Map ───────────────────────────────────────────────────────────────
+const AVATAR_ICONS={
+  waves:(color,size)=>(
+    <svg width={size} height={size} viewBox="0 0 60 60">
+      <circle cx="30" cy="30" r="28" fill={color} fillOpacity="0.3"/>
+      <circle cx="30" cy="30" r="22" fill="none" stroke={color} strokeOpacity="0.5" strokeWidth="1.5"/>
+      <circle cx="30" cy="30" r="14" fill="none" stroke={color} strokeOpacity="0.65" strokeWidth="2"/>
+      <circle cx="30" cy="30" r="6" fill={color} fillOpacity="0.7"/>
+    </svg>
+  ),
+  eq:(color,size)=>(
+    <svg width={size} height={size} viewBox="0 0 60 60">
+      <circle cx="30" cy="30" r="28" fill={color} fillOpacity="0.3"/>
+      <rect x="10" y="21" width="5" height="18" rx="2.5" fill={color} fillOpacity="0.6"/>
+      <rect x="18" y="14" width="5" height="32" rx="2.5" fill={color} fillOpacity="0.75"/>
+      <rect x="26" y="18" width="5" height="24" rx="2.5" fill={color} fillOpacity="0.85"/>
+      <rect x="34" y="10" width="5" height="40" rx="2.5" fill={color} fillOpacity="0.9"/>
+      <rect x="42" y="16" width="5" height="28" rx="2.5" fill={color} fillOpacity="0.85"/>
+      <rect x="50" y="22" width="5" height="16" rx="2.5" fill={color} fillOpacity="0.6"/>
+    </svg>
+  ),
+  sine:(color,size)=>(
+    <svg width={size} height={size} viewBox="0 0 60 60">
+      <circle cx="30" cy="30" r="28" fill={color} fillOpacity="0.3"/>
+      <path d="M6 30 Q11 15 16 30 Q21 45 26 30 Q31 15 36 30 Q41 45 46 30 Q51 15 54 30" fill="none" stroke={color} strokeOpacity="0.8" strokeWidth="3" strokeLinecap="round"/>
+    </svg>
+  ),
+  pulse:(color,size)=>(
+    <svg width={size} height={size} viewBox="0 0 60 60">
+      <circle cx="30" cy="30" r="28" fill={color} fillOpacity="0.3"/>
+      <circle cx="30" cy="30" r="5" fill={color} fillOpacity="0.8"/>
+      <path d="M38 22 Q48 26 48 30 Q48 34 38 38" fill="none" stroke={color} strokeOpacity="0.7" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M42 16 Q56 22 56 30 Q56 38 42 44" fill="none" stroke={color} strokeOpacity="0.45" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M22 22 Q12 26 12 30 Q12 34 22 38" fill="none" stroke={color} strokeOpacity="0.7" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M18 16 Q4 22 4 30 Q4 38 18 44" fill="none" stroke={color} strokeOpacity="0.45" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  ),
+  sym:(color,size)=>(
+    <svg width={size} height={size} viewBox="0 0 60 60">
+      <circle cx="30" cy="30" r="28" fill={color} fillOpacity="0.3"/>
+      <rect x="10" y="24" width="5" height="12" rx="2.5" fill={color} fillOpacity="0.5"/>
+      <rect x="18" y="18" width="5" height="24" rx="2.5" fill={color} fillOpacity="0.6"/>
+      <rect x="26" y="10" width="5" height="40" rx="2.5" fill={color} fillOpacity="0.75"/>
+      <rect x="34" y="14" width="5" height="32" rx="2.5" fill={color} fillOpacity="0.85"/>
+      <rect x="42" y="10" width="5" height="40" rx="2.5" fill={color} fillOpacity="0.75"/>
+      <rect x="50" y="18" width="5" height="24" rx="2.5" fill={color} fillOpacity="0.6"/>
+    </svg>
+  ),
+};
+
+const AVATAR_COLORS=["#FF385C","#e84393","#FC642D","#f0c030","#7ec850","#00A699","#4a90d9","#9b59b6","#333333","#888888"];
+function handleColor(handle){
+  if(!handle)return AVATAR_COLORS[0];
+  let hash=0;for(let i=0;i<handle.length;i++)hash=handle.charCodeAt(i)+((hash<<5)-hash);
+  return AVATAR_COLORS[Math.abs(hash)%AVATAR_COLORS.length];
+}
+
+function Avatar({icon="waves",color="#FF385C",size=40}){
+  const fn=AVATAR_ICONS[icon]||AVATAR_ICONS.waves;
+  return(
+    <div style={{width:size,height:size,borderRadius:"50%",overflow:"hidden",flexShrink:0,background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      {fn(color,size)}
+    </div>
+  );
+}
+
 function ListenPicker({onSelect,onClose}){
   const cats=[
     {id:"amor",label:"Amor"},
@@ -338,7 +403,7 @@ function UserListModal({title,handles,onClose,onViewProfile,following,onToggleFo
             <div style={{padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>No hay usuarios todavía.</div>
           ):users.map(u=>(
             <div key={u.handle} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 20px",borderBottom:"1px solid #f9f9f9"}}>
-              <div style={{width:40,height:40,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🙋</div>
+              <Avatar icon={u.avatar_icon||"waves"} color={u.avatar_color||handleColor(u.handle)} size={40}/>
               <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>onViewProfile(u.handle)}>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:14,fontWeight:700,color:"#222"}}>{u.handle}</span>
@@ -786,7 +851,6 @@ function SpitCard({spit,onClose,following,onFollowToggle,currentUser}){
   const preview=txt.length>110?txt.slice(0,110)+"…":txt;
   const total=Object.values(reactions).reduce((a,b)=>a+b,0);
   const left=MAX_REACTIONS-myR.length;
-  const icon="🙋";
 
   return(
     <div style={{position:"absolute",bottom:16,left:"50%",transform:"translateX(-50%)",width:"min(460px,92vw)",background:"#fff",borderRadius:16,boxShadow:"0 8px 40px rgba(0,0,0,0.12)",zIndex:100,animation:"slideUp 0.25s ease",overflow:"hidden"}}>
@@ -1655,7 +1719,7 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
     const load=async()=>{
       setLoading(true);
       const[{data:u},{data:s},{count:followers},{count:followingC}]=await Promise.all([
-        sb.from("users").select("handle,country,bio").eq("handle",handle).single(),
+        sb.from("users").select("handle,country,bio,avatar_icon,avatar_color").eq("handle",handle).single(),
         sb.from("spits").select("*").eq("handle",handle).order("created_at",{ascending:false}),
         sb.from("follows").select("id",{count:"exact"}).eq("following",handle),
         sb.from("follows").select("id",{count:"exact"}).eq("follower",handle),
@@ -1686,7 +1750,7 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
           {/* Profile card */}
           <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:16}}>
             <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
-              <div style={{width:56,height:56,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🙋</div>
+              <Avatar icon={profile?.avatar_icon||"waves"} color={profile?.avatar_color||handleColor(handle)} size={56}/>
               <div style={{flex:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                   <span style={{fontSize:18,fontWeight:700,color:"#222"}}>{handle}</span>
@@ -2131,7 +2195,7 @@ function App(){
       <div style={{background:"#fff",borderRadius:14,boxShadow:"0 1px 6px rgba(0,0,0,0.05)",overflow:"hidden"}}>
         {/* Thread header */}
         <div style={{padding:"12px 16px",display:"flex",alignItems:"center",gap:10,borderBottom:expanded?"1px solid #f5f5f5":"none"}}>
-          <div style={{width:36,height:36,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🙋</div>
+          <Avatar icon="waves" color={handleColor(first.handle)} size={36}/>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
               <span style={{fontSize:13,fontWeight:700,color:"#222"}}>{first.handle}</span>
@@ -2185,7 +2249,7 @@ function App(){
     return(
       <div style={{background:"#fafafa",borderRadius:12,padding:"10px 14px",borderLeft:`3px solid ${RAUSCH}22`}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:30,height:30,borderRadius:"50%",background:"#f0f0f0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>🙋</div>
+          <Avatar icon="waves" color={handleColor(r.handle)} size={30}/>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:1}}>
               <span onClick={e=>{e.stopPropagation();setViewProfile(r.handle);}} style={{fontSize:12,fontWeight:700,color:"#222",cursor:"pointer"}}>{r.handle}</span>
@@ -2250,7 +2314,7 @@ function App(){
       <div style={{marginBottom:4}}>
         <div style={{background:"#fff",borderRadius:14,padding:"12px 16px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{width:40,height:40,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🙋</div>
+            <Avatar icon="waves" color={handleColor(s.handle)} size={40}/>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                 <span onClick={e=>{e.stopPropagation();setViewProfile(s.handle);}} style={{fontSize:13,fontWeight:700,color:"#222",cursor:"pointer"}}>{s.handle}</span>
@@ -2385,7 +2449,7 @@ function App(){
                   <div style={{background:"#fff",borderRadius:12,boxShadow:"0 2px 12px rgba(0,0,0,0.08)",overflow:"hidden",marginTop:4}}>
                     {searchResults.map(u=>(
                       <div key={u.handle} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:"1px solid #f5f5f5"}}>
-                        <div style={{width:40,height:40,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🙋</div>
+                        <Avatar icon={u.avatar_icon||"waves"} color={u.avatar_color||handleColor(u.handle)} size={40}/>
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{display:"flex",alignItems:"center",gap:6}}>
                             <span style={{fontSize:14,fontWeight:700,color:"#222"}}>{u.handle}</span>
@@ -2470,7 +2534,7 @@ function App(){
                   const country=userData?.country||"";
                   return(
                     <div key={handle} style={{background:"#fff",borderRadius:14,padding:"16px 20px",boxShadow:"0 1px 6px rgba(0,0,0,0.05)",display:"flex",alignItems:"center",gap:14,cursor:"pointer"}} onClick={()=>setViewProfile(handle)}>
-                      <div style={{width:48,height:48,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🙋</div>
+                      <Avatar icon={userData?.avatar_icon||"waves"} color={userData?.avatar_color||handleColor(handle)} size={48}/>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:"flex",alignItems:"center",gap:6}}>
                           <span style={{fontSize:15,fontWeight:700,color:"#222"}}>{handle}</span>
@@ -2503,7 +2567,7 @@ function App(){
           <div>
             <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:16}}>
               <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
-                <div style={{width:56,height:56,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🙋</div>
+                <Avatar icon={user?.avatar_icon||"waves"} color={user?.avatar_color||"#FF385C"} size={56}/>
                 <div style={{flex:1}}>
                   <div style={{fontSize:18,fontWeight:700,color:"#222",display:"flex",alignItems:"center",gap:6}}>
                     {user.handle}{VERIFIED.has(user.handle)&&<VerifiedBadge/>}{user.country&&<span style={{fontSize:16}}>{countryFlag(user.country)}</span>}
@@ -2660,7 +2724,7 @@ function App(){
         <button onClick={()=>setActiveTab("saved")} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
           <IconBookmark active={activeTab==="saved"}/>
         </button>
-        <button onClick={()=>{setActiveTab("profile");if(user){sb.from("spits").select("*").eq("handle",user.handle).order("created_at",{ascending:false}).then(({data})=>setMySpits(data||[]));sb.from("follows").select("follower").eq("following",user.handle).then(({data})=>{setFollowerCount(data?.length||0);setFollowersList(data?.map(f=>f.follower)||[]);});sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at").eq("handle",user.handle).single().then(({data})=>{if(data){const newBio=data.bio||"";setUser(p=>({...p,bio:newBio,country:data.country||p.country||"",handle_changed_at:data.handle_changed_at||p.handle_changed_at||null}));if(!editingBio)setBioText(newBio);}});}}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
+        <button onClick={()=>{setActiveTab("profile");if(user){sb.from("spits").select("*").eq("handle",user.handle).order("created_at",{ascending:false}).then(({data})=>setMySpits(data||[]));sb.from("follows").select("follower").eq("following",user.handle).then(({data})=>{setFollowerCount(data?.length||0);setFollowersList(data?.map(f=>f.follower)||[]);});sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at,avatar_icon,avatar_color").eq("handle",user.handle).single().then(({data})=>{if(data){const newBio=data.bio||"";setUser(p=>({...p,bio:newBio,country:data.country||p.country||"",handle_changed_at:data.handle_changed_at||p.handle_changed_at||null,avatar_icon:data.avatar_icon||"waves",avatar_color:data.avatar_color||"#FF385C"}));if(!editingBio)setBioText(newBio);}});}}} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:12,borderRadius:12}}>
           <IconProfile active={activeTab==="profile"}/>
         </button>
       </nav>
@@ -2730,6 +2794,10 @@ function App(){
                     Cambiar nickname
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
+                  <button onClick={()=>setSettingsView("avatar")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    Editar avatar
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
                   {!user.email?.includes("google")&&(
                     <button onClick={()=>setSettingsView("password")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       Cambiar contraseña
@@ -2776,7 +2844,49 @@ function App(){
                 </>
               );
             })()}
-            {settingsView==="password"&&(
+            {settingsView==="avatar"&&(()=>{
+              const icons=[
+                {id:"waves",label:"Ondas"},
+                {id:"eq",label:"Ecualizador"},
+                {id:"sine",label:"Senoidal"},
+                {id:"pulse",label:"Pulso"},
+                {id:"sym",label:"Simétrica"},
+              ];
+              const colors=["#FF385C","#e84393","#FC642D","#f0c030","#7ec850","#00A699","#4a90d9","#9b59b6","#333333","#888888"];
+              const[selIcon,setSelIcon]=useState(user?.avatar_icon||"waves");
+              const[selColor,setSelColor]=useState(user?.avatar_color||"#FF385C");
+              return(
+                <>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+                    <button onClick={()=>setSettingsView(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,color:"#aaa"}}>←</button>
+                    <div style={{fontSize:15,fontWeight:700,color:"#222"}}>Editar avatar</div>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:20}}>
+                    <Avatar icon={selIcon} color={selColor} size={80}/>
+                  </div>
+                  <div style={{fontSize:11,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10}}>Diseño</div>
+                  <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
+                    {icons.map(ic=>(
+                      <button key={ic.id} onClick={()=>setSelIcon(ic.id)} style={{flex:"1 1 calc(33% - 8px)",padding:"10px 6px",borderRadius:12,border:`1.5px solid ${selIcon===ic.id?RAUSCH:"#ebebeb"}`,background:selIcon===ic.id?"#fff0f3":"#fafafa",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                        <Avatar icon={ic.id} color={selColor} size={36}/>
+                        <span style={{fontSize:10,fontWeight:600,color:selIcon===ic.id?RAUSCH:"#888"}}>{ic.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{fontSize:11,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10}}>Color</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:20}}>
+                    {colors.map(c=>(
+                      <button key={c} onClick={()=>setSelColor(c)} style={{width:36,height:36,borderRadius:"50%",background:c,opacity:0.7,border:`2.5px solid ${selColor===c?"#222":"transparent"}`,cursor:"pointer",padding:0}}/>
+                    ))}
+                  </div>
+                  <button onClick={async()=>{
+                    await sb.from("users").update({avatar_icon:selIcon,avatar_color:selColor}).eq("handle",user.handle);
+                    setUser(p=>({...p,avatar_icon:selIcon,avatar_color:selColor}));
+                    setShowSettings(false);setSettingsView(null);
+                  }} style={{width:"100%",padding:14,borderRadius:12,background:RAUSCH,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Guardar</button>
+                </>
+              );
+            })()}
               <>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
                   <button onClick={()=>setSettingsView(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,color:"#aaa"}}>←</button>
