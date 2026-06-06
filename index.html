@@ -389,6 +389,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
     bronca:{from:"#2d0a0a",to:"#5c1a1a",accent:"#FF385C"},
     anecdotas:{from:"#1a2d0a",to:"#305c10",accent:"#7ec850"},
     injusticias:{from:"#1a0a2d",to:"#30105c",accent:"#9b59b6"},
+    alegria:{from:"#1a2d1a",to:"#2d5c10",accent:"#f0c030"},
   };
   const theme=(spit?.emotion&&emotionBg[spit.emotion])||
               (spit?.category&&catBg[spit.category])||
@@ -465,7 +466,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const isFollowing=following?.includes(spit.handle);
   const pct=duration>0?(progress/duration)*100:0;
   const fmt=s=>isFinite(s)&&s>=0?`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`:"0:00";
-  const CATS_L={amor:"Amor / Desamor (Puterío)",chismes:"Chismes que no puedo guardar",jefes:"Jefes / Trabajo (Lo que no podés decir en la cara)",bronca:"Quejas / Broncas / Frustraciones",anecdotas:"Cosas que me pasaron / Anécdotas",injusticias:"Injusticias / Indignación"};
+  const CATS_L={amor:"Amor / Desamor (Puterío)",chismes:"Chismes que no puedo guardar",jefes:"Jefes / Trabajo (Lo que no podés decir en la cara)",bronca:"Quejas / Broncas / Frustraciones",anecdotas:"Cosas que me pasaron / Anécdotas",injusticias:"Injusticias / Indignación",alegria:"Buenas noticias / Alegría"};
 
   return(
     <div style={{
@@ -829,9 +830,9 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
   const sourceRef=useRef(null);
 
   const EFFECTS={
-    normal:{label:"Normal",emoji:"🎙",desc:"Tu voz tal cual",rate:1,pitch:1},
-    ardilla:{label:"Ardilla",emoji:"🐿️",desc:"Aguda y divertida",rate:1.4,pitch:1.4},
-    sombra:{label:"Sombra",emoji:"👤",desc:"Grave y anónima",rate:0.8,pitch:0.7},
+    normal:{label:"Normal",emoji:"",desc:"Tu voz tal cual",rate:1,pitch:1},
+    ardilla:{label:"Ardilla",emoji:"",desc:"Aguda y divertida",rate:1.4,pitch:1.4},
+    grave:{label:"Grave",emoji:"",desc:"Grave y profunda",rate:0.8,pitch:0.7},
   };
 
   const start=async()=>{
@@ -1036,13 +1037,12 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
               <div style={{display:"flex",gap:8}}>
                 {Object.entries(EFFECTS).map(([key,cfg])=>(
                   <button key={key} onClick={()=>{stopPreview();setEffect(key);}} style={{
-                    flex:1,padding:"8px 6px",borderRadius:10,cursor:"pointer",
+                    flex:1,padding:"12px 6px",borderRadius:10,cursor:"pointer",
                     background:effect===key?"#fff0f3":"#f7f7f7",
                     border:`1.5px solid ${effect===key?RAUSCH:"#e8e8e8"}`,
                     transition:"all 0.15s",textAlign:"center",
                   }}>
-                    <div style={{fontSize:18,marginBottom:2}}>{cfg.emoji}</div>
-                    <div style={{fontSize:11,fontWeight:600,color:effect===key?RAUSCH:"#333"}}>{cfg.label}</div>
+                    <div style={{fontSize:13,fontWeight:600,color:effect===key?RAUSCH:"#333"}}>{cfg.label}</div>
                   </button>
                 ))}
               </div>
@@ -1149,7 +1149,7 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
             {/* Category */}
             <div style={{marginBottom:14}}>
               <div style={{fontSize:11,fontWeight:600,color:"#555",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Categoría <span style={{color:RAUSCH}}>*</span></div>
-              <div style={{display:"flex",gap:8,flexDirection:"column"}}>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {[
                   {id:"amor",label:"Amor / Desamor (Puterío)"},
                   {id:"chismes",label:"Chismes que no puedo guardar"},
@@ -1157,14 +1157,15 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
                   {id:"bronca",label:"Quejas / Broncas / Frustraciones"},
                   {id:"anecdotas",label:"Cosas que me pasaron / Anécdotas"},
                   {id:"injusticias",label:"Injusticias / Indignación"},
+                  {id:"alegria",label:"Buenas noticias / Alegría"},
                 ].map(c=>(
                   <button key={c.id} onClick={()=>setCategory(c.id)} style={{
-                    width:"100%",padding:"12px 14px",borderRadius:12,cursor:"pointer",
+                    flex:"1 1 calc(50% - 4px)",padding:"12px 10px",borderRadius:12,cursor:"pointer",
                     background:category===c.id?"#fff0f3":"#f7f7f7",
                     border:`1.5px solid ${category===c.id?RAUSCH:"#e8e8e8"}`,
-                    transition:"all 0.15s",textAlign:"left",
+                    transition:"all 0.15s",textAlign:"center",
                   }}>
-                    <div style={{fontSize:13,fontWeight:600,color:category===c.id?RAUSCH:"#555",lineHeight:1.3}}>{c.label}</div>
+                    <div style={{fontSize:12,fontWeight:600,color:category===c.id?RAUSCH:"#555",lineHeight:1.3}}>{c.label}</div>
                   </button>
                 ))}
               </div>
@@ -1602,7 +1603,7 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
   const[followerCount,setFollowerCount]=useState(0);
   const[followingCount,setFollowingCount]=useState(0);
   const[loading,setLoading]=useState(true);
-  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias"};
+  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
 
   useEffect(()=>{
     const load=async()=>{
@@ -2052,7 +2053,7 @@ function App(){
   );
 
   // Tab content renderers
-  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias"};
+  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
 
   const groupSpits=(feedSpits)=>{
     const groups=[];
@@ -2560,7 +2561,7 @@ function App(){
             {mySpits.length===0?(
               <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>Todavía no escupiste nada.</div>
             ):(()=>{
-              const CATS_P={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias"};
+              const CATS_P={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Bronca",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
               const seen=new Set();
               const groups=[];
               mySpits.forEach(s=>{
