@@ -2603,21 +2603,62 @@ function App(){
         {activeTab==="profile"&&(
           <div>
             <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"0 2px 12px rgba(0,0,0,0.06)",marginBottom:16}}>
+
+              {/* Header: avatar + info + gear */}
               <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
-                <Avatar icon={user?.avatar_icon||"waves"} color={user?.avatar_color||"#FF385C"} size={56}/>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:18,fontWeight:700,color:"#222",display:"flex",alignItems:"center",gap:6}}>
+                <Avatar icon={user?.avatar_icon||"waves"} color={user?.avatar_color||handleColor(user?.handle||"")} size={56}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:18,fontWeight:700,color:"#222",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                     {user.handle}{VERIFIED.has(user.handle)&&<VerifiedBadge/>}{user.country&&<span style={{fontSize:16}}>{countryFlag(user.country)}</span>}
                   </div>
-                  <div style={{fontSize:12,color:"#aaa",marginTop:2}}>{user.email}</div>
+                  {/* Bio inline, smaller */}
+                  {!editingBio&&(
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+                      {user.bio?(
+                        <>
+                          <span style={{fontSize:16,letterSpacing:2}}>{user.bio}</span>
+                          <button onClick={()=>{setBioText(user.bio||"");setEditingBio(true);}} style={{background:"none",border:"none",fontSize:10,color:"#ccc",cursor:"pointer",textDecoration:"underline",padding:0}}>Editar</button>
+                        </>
+                      ):(
+                        <button onClick={()=>setEditingBio(true)} style={{background:"none",border:"none",fontSize:11,color:"#bbb",cursor:"pointer",textDecoration:"underline",padding:0}}>+ Agregar emojis</button>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <button onClick={()=>{setShowSettings(true);setSettingsView(null);}} style={{background:"none",border:"none",cursor:"pointer",padding:8,color:"#bbb",display:"flex",alignItems:"center"}}>
+                <button onClick={()=>{setShowSettings(true);setSettingsView(null);}} style={{background:"none",border:"none",cursor:"pointer",padding:8,display:"flex",alignItems:"center",flexShrink:0}}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                   </svg>
                 </button>
               </div>
-              <div style={{display:"flex",gap:24,paddingTop:12,borderTop:"1px solid #f5f5f5",marginBottom:user.bio||editingBio?12:0}}>
+
+              {/* Bio editing mode */}
+              {editingBio&&(
+                <div style={{marginBottom:12,paddingTop:12,borderTop:"1px solid #f5f5f5"}}>
+                  <div style={{fontSize:12,color:"#aaa",marginBottom:8}}>Solo emojis · máximo 10</div>
+                  <input type="text" value={bioText}
+                    onChange={e=>{
+                      const val=e.target.value;
+                      const hasText=/[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ#@.,!?¿¡\s]/.test(val);
+                      if(hasText){setBioError("Solo se permiten emojis.");return;}
+                      const segs=[...new Intl.Segmenter(undefined,{granularity:"grapheme"}).segment(val)];
+                      if(segs.length>10){setBioError("Máximo 10 emojis.");return;}
+                      setBioError("");setBioText(val);
+                    }}
+                    placeholder="😤🔥❤️..."
+                    style={{width:"100%",padding:"12px 14px",borderRadius:10,border:"1.5px solid #ebebeb",fontSize:22,color:"#222",background:"#f9f9f9",outline:"none",boxSizing:"border-box",letterSpacing:4}}
+                  />
+                  {bioError&&<div style={{fontSize:11,color:RAUSCH,marginTop:4}}>{bioError}</div>}
+                  <div style={{fontSize:11,color:"#bbb",marginTop:4,textAlign:"right"}}>{[...new Intl.Segmenter(undefined,{granularity:"grapheme"}).segment(bioText)].length}/10</div>
+                  <div style={{display:"flex",gap:8,marginTop:8}}>
+                    <button onClick={async()=>{const{error}=await sb.from("users").update({bio:bioText}).eq("handle",user.handle);if(error){setBioError("Error al guardar: "+error.message);return;}setUser(p=>({...p,bio:bioText}));setEditingBio(false);}} style={{flex:1,padding:"10px",borderRadius:10,background:RAUSCH,border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Guardar</button>
+                    <button onClick={()=>{setEditingBio(false);setBioText(user.bio||"");setBioError("");}} style={{flex:1,padding:"10px",borderRadius:10,background:"#f5f5f5",border:"none",color:"#555",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Stats */}
+              <div style={{display:"flex",gap:24,paddingTop:12,borderTop:"1px solid #f5f5f5"}}>
                 <div style={{textAlign:"center"}}>
                   <div style={{fontSize:20,fontWeight:700,color:"#222"}}>{mySpits.length}</div>
                   <div style={{fontSize:11,color:"#aaa"}}>Spits</div>
@@ -2631,43 +2672,7 @@ function App(){
                   <div style={{fontSize:11,color:RAUSCH,fontWeight:600}}>Siguiendo</div>
                 </div>
               </div>
-              {/* Bio */}
-              {editingBio?(
-                <div style={{paddingTop:12,borderTop:"1px solid #f5f5f5"}}>
-                  <div style={{fontSize:12,color:"#aaa",marginBottom:8}}>Solo emojis · máximo 10</div>
-                  <input
-                    type="text"
-                    value={bioText}
-                    onChange={e=>{
-                      const val=e.target.value;
-                      const hasText=/[a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ#@.,!?¿¡\s]/.test(val);
-                      if(hasText){setBioError("Solo se permiten emojis.");return;}
-                      const segs=[...new Intl.Segmenter(undefined,{granularity:"grapheme"}).segment(val)];
-                      if(segs.length>10){setBioError("Máximo 10 emojis.");return;}
-                      setBioError("");setBioText(val);
-                    }}
-                    placeholder="😤🔥❤️..."
-                    style={{width:"100%",padding:"12px 14px",borderRadius:10,border:"1.5px solid #ebebeb",fontSize:28,color:"#222",background:"#f9f9f9",outline:"none",boxSizing:"border-box",letterSpacing:4}}
-                  />
-                  {bioError&&<div style={{fontSize:11,color:RAUSCH,marginTop:4}}>{bioError}</div>}
-                  <div style={{fontSize:11,color:"#bbb",marginTop:4,textAlign:"right"}}>{[...new Intl.Segmenter(undefined,{granularity:"grapheme"}).segment(bioText)].length}/10 emojis</div>
-                  <div style={{display:"flex",gap:8,marginTop:8}}>
-                    <button onClick={async()=>{const{error}=await sb.from("users").update({bio:bioText}).eq("handle",user.handle);if(error){setBioError("Error al guardar: "+error.message);return;}setUser(p=>({...p,bio:bioText}));setEditingBio(false);}} style={{flex:1,padding:"10px",borderRadius:10,background:RAUSCH,border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}>Guardar</button>
-                    <button onClick={()=>{setEditingBio(false);setBioText(user.bio||"");setBioError("");}} style={{flex:1,padding:"10px",borderRadius:10,background:"#f5f5f5",border:"none",color:"#555",fontSize:13,cursor:"pointer"}}>Cancelar</button>
-                  </div>
-                </div>
-              ):(
-                <div style={{paddingTop:user.bio?12:0,borderTop:user.bio?"1px solid #f5f5f5":"none"}}>
-                  {user.bio?(
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
-                      <p style={{fontSize:28,margin:0,letterSpacing:4}}>{user.bio}</p>
-                      <button onClick={()=>{setBioText(user.bio||"");setEditingBio(true);}} style={{background:"none",border:"none",fontSize:11,color:"#bbb",cursor:"pointer",flexShrink:0,textDecoration:"underline"}}>Editar</button>
-                    </div>
-                  ):(
-                    <button onClick={()=>setEditingBio(true)} style={{background:"none",border:"1.5px dashed #e0e0e0",borderRadius:10,padding:"10px 16px",width:"100%",fontSize:13,color:"#bbb",cursor:"pointer",marginTop:8}}>+ Agregar emojis</button>
-                  )}
-                </div>
-              )}
+
             </div>
             <div style={{fontSize:12,fontWeight:600,color:"#aaa",textTransform:"uppercase",letterSpacing:0.5,marginBottom:10,paddingLeft:4}}>Mis spits ({mySpits.length})</div>
             {mySpits.length===0?(
@@ -2737,9 +2742,6 @@ function App(){
                 <button onClick={()=>setShowTerms(true)} style={{background:"none",border:"none",fontSize:12,color:"#ccc",cursor:"pointer",textDecoration:"underline",padding:0}}>Términos de Uso</button>
                 <button onClick={()=>setShowPrivacy(true)} style={{background:"none",border:"none",fontSize:12,color:"#ccc",cursor:"pointer",textDecoration:"underline",padding:0}}>Privacidad</button>
                 <button onClick={()=>setShowCommunity(true)} style={{background:"none",border:"none",fontSize:12,color:"#ccc",cursor:"pointer",textDecoration:"underline",padding:0}}>Normas</button>
-              </div>
-              <div style={{textAlign:"center"}}>
-                <button onClick={logout} style={{background:"none",border:"none",fontSize:13,color:"#bbb",cursor:"pointer",textDecoration:"underline"}}>Cerrar sesión</button>
               </div>
             </div>
           </div>
@@ -2821,26 +2823,27 @@ function App(){
       {/* Settings sheet */}
       {showSettings&&(
         <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={()=>{setShowSettings(false);setSettingsView(null);}}>
-          <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"6px 20px 36px",boxShadow:"0 -8px 40px rgba(0,0,0,0.12)"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:"24px 24px 0 0",width:"100%",maxWidth:480,padding:"6px 20px 36px",boxShadow:"0 -8px 40px rgba(0,0,0,0.12)",maxHeight:"90vh",overflowY:"auto"}}>
             <div style={{width:40,height:4,background:"#e0e0e0",borderRadius:2,margin:"12px auto 20px"}}/>
             {!settingsView&&(
               <>
                 <div style={{fontSize:15,fontWeight:700,color:"#222",marginBottom:20}}>Configuración</div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  <button onClick={()=>setSettingsView("handle")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    Cambiar nickname
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                  </button>
                   <button onClick={()=>setSettingsView("avatar")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     Editar avatar
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
-                  {!user.email?.includes("google")&&(
-                    <button onClick={()=>setSettingsView("password")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      Cambiar contraseña
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
-                  )}
+                  <button onClick={()=>setSettingsView("handle")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    Editar nickname
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                  <button onClick={()=>setSettingsView("security")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    Seguridad
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                  <button onClick={async()=>{await sb.auth.signOut();setUser(null);setShowSettings(false);}} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:RAUSCH,fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left"}}>
+                    Cerrar sesión
+                  </button>
                 </div>
               </>
             )}
@@ -2853,7 +2856,7 @@ function App(){
                 <>
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
                     <button onClick={()=>setSettingsView(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,color:"#aaa"}}>←</button>
-                    <div style={{fontSize:15,fontWeight:700,color:"#222"}}>Cambiar nickname</div>
+                    <div style={{fontSize:15,fontWeight:700,color:"#222"}}>Editar nickname</div>
                   </div>
                   <div style={{fontSize:12,color:"#aaa",marginBottom:12}}>Podés cambiarlo una vez cada 14 días.</div>
                   {canChange?(
@@ -2886,6 +2889,25 @@ function App(){
               setUser(p=>({...p,avatar_icon:icon,avatar_color:color}));
               setShowSettings(false);setSettingsView(null);
             }} onBack={()=>setSettingsView(null)}/>}
+
+            {settingsView==="security"&&(
+              <>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+                  <button onClick={()=>setSettingsView(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,color:"#aaa",fontSize:18}}>←</button>
+                  <div style={{fontSize:15,fontWeight:700,color:"#222"}}>Seguridad</div>
+                </div>
+                <div style={{background:"#f9f9f9",borderRadius:12,padding:"14px 16px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{fontSize:12,color:"#aaa"}}>Email</div>
+                  <div style={{fontSize:13,color:"#555",fontWeight:600}}>{user.email}</div>
+                </div>
+                {!user.email?.includes("google")&&(
+                  <button onClick={()=>setSettingsView("password")} style={{width:"100%",padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    Cambiar contraseña
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                )}
+              </>
+            )}
 
             {settingsView==="password"&&(
               <>
