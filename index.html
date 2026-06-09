@@ -2433,7 +2433,7 @@ function App(){
                 <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/>
               </svg>
             </button>
-            {playing&&<button onClick={e=>{e.stopPropagation();setSpeed(s=>{const i=SPEEDS.indexOf(s);return SPEEDS[(i+1)%SPEEDS.length];});}} style={{background:speed!==1?"#fff0f3":"#f0f0f0",border:`1.5px solid ${speed!==1?RAUSCH:"#e8e8e8"}`,borderRadius:6,padding:"3px 7px",cursor:"pointer",fontSize:11,fontWeight:700,color:speed!==1?RAUSCH:"#888",flexShrink:0}}>
+            {playing&&<button onClick={e=>{e.stopPropagation();setSpeed(s=>{const i=SPEEDS.indexOf(s);const next=SPEEDS[(i+1)%SPEEDS.length];if(audioRef.current)audioRef.current.playbackRate=next;return next;});}} style={{background:speed!==1?"#fff0f3":"#f0f0f0",border:`1.5px solid ${speed!==1?RAUSCH:"#e8e8e8"}`,borderRadius:6,padding:"3px 7px",cursor:"pointer",fontSize:11,fontWeight:700,color:speed!==1?RAUSCH:"#888",flexShrink:0}}>
               {speed===1?"1x":speed===1.5?"1.5x":"2x"}
             </button>}
             <button onClick={togglePlay} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,56,92,0.08)",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
