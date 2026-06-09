@@ -2936,8 +2936,9 @@ function App(){
                         const h="@"+newHandle;
                         const{data:existing}=await sb.from("users").select("handle").eq("handle",h).single();
                         if(existing){setHandleError("Ese nickname ya está en uso.");return;}
-                        await sb.from("users").update({handle:h,handle_changed_at:new Date().toISOString()}).eq("handle",user.handle);
-                        setUser(p=>({...p,handle:h}));
+                        const{error:fnErr}=await sb.rpc("update_handle_cascade",{old_handle:user.handle,new_handle:h});
+                        if(fnErr){setHandleError("Error al cambiar el nickname. Intentá de nuevo.");return;}
+                        setUser(p=>({...p,handle:h,handle_changed_at:new Date().toISOString()}));
                         setShowSettings(false);setSettingsView(null);setHandleError("");setNewHandle("");
                       }} style={{width:"100%",padding:14,borderRadius:12,background:RAUSCH,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Guardar</button>
                     </>
