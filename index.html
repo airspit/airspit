@@ -600,6 +600,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   },[playing]);
 
   useEffect(()=>{if(audioRef.current)audioRef.current.playbackRate=speed;},[speed]);
+  useEffect(()=>{if(spitId&&playingId!==spitId&&playing){if(audioRef.current){audioRef.current.pause();}setPlaying(false);setCur(0);}},[playingId]);
 
   const goTo=(newIdx,dir)=>{
     if(animating||newIdx<0||newIdx>=spits.length)return;
@@ -792,7 +793,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   );
 }
 
-function Player({duration,audioUrl}){
+function Player({duration,audioUrl,playingId,setPlayingId,spitId}){
   const[playing,setPlaying]=useState(false);
   const[cur,setCur]=useState(0);
   const[speed,setSpeed]=useState(1);
@@ -821,9 +822,10 @@ function Player({duration,audioUrl}){
     const a=audioRef.current;
     if(!a)return;
     if(playing){
+      if(spitId&&setPlayingId)setPlayingId(spitId);
       a.playbackRate=speed;
       a.play().catch(()=>setPlaying(false));
-      intRef.current=setInterval(()=>{setCur(a.currentTime||0);if(a.ended){setPlaying(false);setCur(0);}},250);
+      intRef.current=setInterval(()=>{setCur(a.currentTime||0);if(a.ended){setPlaying(false);setCur(0);if(setPlayingId)setPlayingId(null);}},250);
     }else{
       a.pause();
       clearInterval(intRef.current);
@@ -2001,6 +2003,7 @@ function App(){
   const[following,setFollowing]=useState([]);
   const[showProfile,setShowProfile]=useState(false);
   const[mySpits,setMySpits]=useState([]);
+  const[playingId,setPlayingId]=useState(null);
   const[showListen,setShowListen]=useState(false);
   const[listenStart,setListenStart]=useState(0);
   const[showListenPicker,setShowListenPicker]=useState(false);
@@ -2345,6 +2348,7 @@ function App(){
       else{audioRef.current.play().catch(()=>setPlaying(false));setPlaying(true);}
     };
     useEffect(()=>()=>{if(audioRef.current){audioRef.current.pause();audioRef.current=null;}},[]);
+    useEffect(()=>{if(playingId!==s.id&&playing){if(audioRef.current){audioRef.current.pause();}setPlaying(false);setProgress(0);};},[playingId]);
     useEffect(()=>{if(audioRef.current)audioRef.current.playbackRate=speed;},[speed]);
     const pct=dur>0?(progress/dur)*100:0;
     const fmt=t=>{const m=Math.floor(t/60);const sc=Math.floor(t%60);return`${m}:${sc<10?"0":""}${sc}`;};
@@ -2379,7 +2383,7 @@ function App(){
     );
   };
 
-  const FeedCard=({s,i,savedIds,toggleSave,setListenStart,setShowListen,setViewProfile,allSpits,onRespit,currentUser})=>{
+  const FeedCard=({s,i,savedIds,toggleSave,setListenStart,setShowListen,setViewProfile,allSpits,onRespit,currentUser,playingId,setPlayingId})=>{
     const[playing,setPlaying]=useState(false);
     const[progress,setProgress]=useState(0);
     const[dur,setDur]=useState(s.duration||0);
@@ -2395,16 +2399,19 @@ function App(){
         const a=new Audio(s.audio_url);
         a.onloadedmetadata=()=>{if(isFinite(a.duration)&&a.duration>0)setDur(a.duration);};
         a.ontimeupdate=()=>setProgress(a.currentTime);
-        a.onended=()=>{setPlaying(false);setProgress(0);audioRef.current=null;};
+        a.onended=()=>{setPlaying(false);setProgress(0);audioRef.current=null;setPlayingId(null);};
         audioRef.current=a;
         a.play().catch(()=>setPlaying(false));
         setPlaying(true);
+        setPlayingId(s.id);
       } else if(playing){
         audioRef.current.pause();
         setPlaying(false);
+        setPlayingId(null);
       } else {
         audioRef.current.play().catch(()=>setPlaying(false));
         setPlaying(true);
+        setPlayingId(s.id);
       }
     };
 
@@ -2483,7 +2490,7 @@ function App(){
         {groups.map(g=>{
           if(g.type==="thread")return <ThreadCard key={g.id} thread={g.spits} firstIndex={g.firstIndex}/>;
           const s=g.spit;const i=g.index;
-          return <FeedCard key={s.id} s={s} i={i} savedIds={savedIds} toggleSave={toggleSave} setListenStart={setListenStart} setShowListen={setShowListen} setViewProfile={setViewProfile} allSpits={feedSpits} onRespit={(id)=>{setRespitOf(id);setShowRecord(true);}} currentUser={user}/>;
+          return <FeedCard key={s.id} s={s} i={i} savedIds={savedIds} toggleSave={toggleSave} setListenStart={setListenStart} setShowListen={setShowListen} setViewProfile={setViewProfile} allSpits={feedSpits} onRespit={(id)=>{setRespitOf(id);setShowRecord(true);}} currentUser={user} playingId={playingId} setPlayingId={setPlayingId}/>;
         })}
       </div>
     );
@@ -2782,7 +2789,7 @@ function App(){
                                   onMouseOver={e=>e.currentTarget.style.color=RAUSCH}
                                   onMouseOut={e=>e.currentTarget.style.color="#ddd"}>🗑</button>
                               </div>
-                              <Player duration={s.duration} audioUrl={s.audio_url}/>
+                              <Player duration={s.duration} audioUrl={s.audio_url} spitId={s.id} playingId={playingId} setPlayingId={setPlayingId}/>
                             </div>
                           ))}
                         </div>
@@ -2797,7 +2804,7 @@ function App(){
                             onMouseOver={e=>e.currentTarget.style.color=RAUSCH}
                             onMouseOut={e=>e.currentTarget.style.color="#ddd"}>🗑</button>
                         </div>
-                        <Player duration={s.duration} audioUrl={s.audio_url}/>
+                        <Player duration={s.duration} audioUrl={s.audio_url} spitId={s.id} playingId={playingId} setPlayingId={setPlayingId}/>
                       </div>
                     );
                   })}
