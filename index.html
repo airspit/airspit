@@ -653,7 +653,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const pct=duration>0?(progress/duration)*100:0;
   const fmt=s=>isFinite(s)&&s>=0?`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`:"0:00";
   const CATS_SHORT={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",opinion:"Opinión",alegria:"Alegrías"};
-  const CATS_L={amor:"AMOR / Desamor (Puterío)",chismes:"CHISMES que no puedo guardar",jefes:"JEFES / Trabajo",bronca:"QUEJAS / Broncas / Frustraciones",anecdotas:"ANÉCDOTAS / Pasaron cosas",injusticias:"INJUSTICIAS / Indignación",opinion:"OPINIÓN / Lo que pienso",alegria:"ALEGRÍAS / Todo lo bueno que querés decir"};
+  const CATS_L={amor:"AMOR / Desamor (Puterío)",chismes:"CHISMES que no puedo guardar",jefes:"JEFES / Trabajo",bronca:"QUEJAS / Broncas / Frustraciones",anecdotas:"ANÉCDOTAS / Pasaron cosas",injusticias:"INJUSTICIAS / Indignación",opinion:"OPINIÓN / Lo que pienso",alegria:"ALEGRÍAS / Todo lo bueno que quiero decir"};
 
   return(
     <div style={{
@@ -1343,7 +1343,7 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
                   {id:"bronca",label:"QUEJAS / Broncas / Frustraciones"},
                   {id:"anecdotas",label:"ANÉCDOTAS / Pasaron cosas"},
                   {id:"injusticias",label:"INJUSTICIAS / Indignación"},
-                  {id:"alegria",label:"ALEGRÍAS / Todo lo bueno que querés decir"},
+                  {id:"alegria",label:"ALEGRÍAS / Todo lo bueno que quiero decir"},
                   {id:"opinion",label:"OPINIÓN / Lo que pienso"},
                 ].map(c=>(
                   <button key={c.id} onClick={()=>setCategory(c.id)} style={{
