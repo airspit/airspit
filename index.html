@@ -94,7 +94,8 @@ const sb=supabase.createClient(
 async function dbRegister(email,password,handle,role){
   const{data:a,error:e}=await sb.auth.signUp({email,password});
   if(e)return{error:e.message};
-  await sb.from("users").insert([{email,handle,role,auth_id:a.user?.id}]);
+  let country="";try{const geo=await fetch("https://ipapi.co/json/");const geoData=await geo.json();if(geoData&&geoData.country_code)country=geoData.country_code;}catch{}
+  await sb.from("users").insert([{email,handle,role,auth_id:a.user?.id,country}]);
   return{ok:true};
 }
 async function dbLogin(email,password){
@@ -472,7 +473,6 @@ function UserListModal({title,handles,onClose,onViewProfile,following,onToggleFo
               <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>onViewProfile(u.handle)}>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:14,fontWeight:700,color:"#222"}}>{u.handle}</span>
-                  {u.country&&<span style={{fontSize:13}}>{countryFlag(u.country)}</span>}
                 </div>
                 {u.bio&&<div style={{fontSize:16,marginTop:2,letterSpacing:2}}>{u.bio}</div>}
               </div>
@@ -702,7 +702,6 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:6}}>
             <span onClick={e=>{e.stopPropagation();onViewProfile(spit.handle);}} style={{fontSize:20,fontWeight:800,color:"#fff",letterSpacing:-0.5,cursor:"pointer",textDecoration:"underline",textDecorationColor:"rgba(255,255,255,0.3)",textUnderlineOffset:3}}>{spit.handle}</span>
             {VERIFIED.has(spit.handle)&&<VerifiedBadge/>}
-            <span style={{fontSize:16}}>{countryFlag(spit.country||"")}</span>
             {spit.handle!==currentUser?.handle&&(
               <button onClick={e=>{e.stopPropagation();setShowReport(true);}} style={{background:"none",border:"none",cursor:"pointer",padding:4,opacity:0.4,display:"flex",alignItems:"center"}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
@@ -1820,7 +1819,7 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
                 <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                   <span style={{fontSize:18,fontWeight:700,color:"#222"}}>{handle}</span>
                   {VERIFIED.has(handle)&&<VerifiedBadge/>}
-                  {profile?.country&&<span style={{fontSize:16}}>{countryFlag(profile.country)}</span>}
+                  
                 </div>
                 {profile?.bio&&<div style={{fontSize:24,marginTop:4,letterSpacing:3}}>{profile.bio}</div>}
               </div>
@@ -2200,7 +2199,6 @@ function App(){
 
   // Country flag from lat/lon (approximate)
   const getFlag=(s)=>{
-    if(s.country)return countryFlag(s.country);
     return "";
   };
 
@@ -2532,7 +2530,6 @@ function App(){
                           <div style={{display:"flex",alignItems:"center",gap:6}}>
                             <span style={{fontSize:14,fontWeight:700,color:"#222"}}>{u.handle}</span>
                             {VERIFIED.has(u.handle)&&<VerifiedBadge/>}
-                            {u.country&&<span style={{fontSize:13}}>{countryFlag(u.country)}</span>}
                           </div>
                           {u.bio&&<div style={{fontSize:16,marginTop:2,letterSpacing:2}}>{u.bio}</div>}
                         </div>
@@ -2617,7 +2614,6 @@ function App(){
                         <div style={{display:"flex",alignItems:"center",gap:6}}>
                           <span style={{fontSize:15,fontWeight:700,color:"#222"}}>{handle}</span>
                           {VERIFIED.has(handle)&&<VerifiedBadge/>}
-                          {country&&<span style={{fontSize:14}}>{countryFlag(country)}</span>}
                         </div>
                         {userData?.bio&&<div style={{fontSize:16,marginTop:2,letterSpacing:2}}>{userData.bio}</div>}
                       </div>
@@ -2650,7 +2646,7 @@ function App(){
                 <Avatar icon={user?.avatar_icon||"waves"} color={user?.avatar_color||handleColor(user?.handle||"")} size={56}/>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:18,fontWeight:700,color:"#222",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                    {user.handle}{VERIFIED.has(user.handle)&&<VerifiedBadge/>}{user.country&&<span style={{fontSize:16}}>{countryFlag(user.country)}</span>}
+                    {user.handle}{VERIFIED.has(user.handle)&&<VerifiedBadge/>}
                   </div>
                   {/* Bio inline, smaller */}
                   {!editingBio&&(
@@ -2876,6 +2872,9 @@ function App(){
                   </button>
                   <button onClick={()=>setSettingsView("handle")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     Editar nickname
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </button>
+                  <button onClick={()=>setSettingsView("country")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
                   <button onClick={()=>setSettingsView("security")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
