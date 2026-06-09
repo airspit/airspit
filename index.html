@@ -426,8 +426,8 @@ function ListenPicker({onSelect,onClose}){
     {id:"bronca",label:"Quejas"},
     {id:"anecdotas",label:"Anécdotas"},
     {id:"injusticias",label:"Injusticias"},
-    {id:"opinion",label:"Opinión"},
     {id:"alegria",label:"Alegrías"},
+    {id:"opinion",label:"Opinión"},
   ];
   const colors={
     amor:"#e84393",chismes:"#FC642D",jefes:"#4a90d9",
@@ -1343,8 +1343,8 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
                   {id:"bronca",label:"QUEJAS / Broncas / Frustraciones"},
                   {id:"anecdotas",label:"ANÉCDOTAS / Pasaron cosas"},
                   {id:"injusticias",label:"INJUSTICIAS / Indignación"},
-                  {id:"opinion",label:"OPINIÓN / Lo que pienso"},
                   {id:"alegria",label:"ALEGRÍAS / Todo lo bueno que querés decir"},
+                  {id:"opinion",label:"OPINIÓN / Lo que pienso"},
                 ].map(c=>(
                   <button key={c.id} onClick={()=>setCategory(c.id)} style={{
                     flex:"1 1 calc(50% - 4px)",padding:"10px 8px",borderRadius:12,cursor:"pointer",
