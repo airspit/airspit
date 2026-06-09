@@ -2346,6 +2346,7 @@ function App(){
       else{audioRef.current.play().catch(()=>setPlaying(false));setPlaying(true);}
     };
     useEffect(()=>()=>{if(audioRef.current){audioRef.current.pause();audioRef.current=null;}},[]);
+    useEffect(()=>{if(audioRef.current)audioRef.current.playbackRate=speed;},[speed]);
     const pct=dur>0?(progress/dur)*100:0;
     const fmt=t=>{const m=Math.floor(t/60);const sc=Math.floor(t%60);return`${m}:${sc<10?"0":""}${sc}`;};
     return(
@@ -2384,6 +2385,7 @@ function App(){
     const[progress,setProgress]=useState(0);
     const[dur,setDur]=useState(s.duration||0);
     const[showReport,setShowReport]=useState(false);
+    const[speed,setSpeed]=useState(1);
     const audioRef=useRef(null);
     const respits=allSpits?allSpits.filter(r=>r.respit_of===s.id):[];
 
@@ -2431,6 +2433,9 @@ function App(){
                 <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/>
               </svg>
             </button>
+            {playing&&<button onClick={e=>{e.stopPropagation();setSpeed(s=>{const i=SPEEDS.indexOf(s);return SPEEDS[(i+1)%SPEEDS.length];});}} style={{background:speed!==1?"#fff0f3":"#f0f0f0",border:`1.5px solid ${speed!==1?RAUSCH:"#e8e8e8"}`,borderRadius:6,padding:"3px 7px",cursor:"pointer",fontSize:11,fontWeight:700,color:speed!==1?RAUSCH:"#888",flexShrink:0}}>
+              {speed===1?"1x":speed===1.5?"1.5x":"2x"}
+            </button>}
             <button onClick={togglePlay} style={{width:36,height:36,borderRadius:"50%",background:"rgba(255,56,92,0.08)",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               <span style={{color:RAUSCH,fontSize:14}}>{playing?"⏸":"▶"}</span>
             </button>
