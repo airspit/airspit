@@ -416,7 +416,7 @@ function ListenPicker({onSelect,onClose}){
     {id:"bronca",label:"Quejas"},
     {id:"anecdotas",label:"Anécdotas"},
     {id:"injusticias",label:"Injusticias"},
-    {id:"alegria",label:"Alegría"},
+    {id:"alegria",label:"Alegrías"},
   ];
   const colors={
     amor:"#e84393",chismes:"#FC642D",jefes:"#4a90d9",
@@ -641,8 +641,8 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const isFollowing=following?.includes(spit.handle);
   const pct=duration>0?(progress/duration)*100:0;
   const fmt=s=>isFinite(s)&&s>=0?`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`:"0:00";
-  const CATS_SHORT={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
-  const CATS_L={amor:"AMOR / Desamor (Puterío)",chismes:"CHISMES que no puedo guardar",jefes:"JEFES / Trabajo",bronca:"QUEJAS / Broncas / Frustraciones",anecdotas:"ANÉCDOTAS / Pasaron cosas",injusticias:"INJUSTICIAS / Indignación",alegria:"ALEGRÍA / Buenas noticias"};
+  const CATS_SHORT={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegrías"};
+  const CATS_L={amor:"AMOR / Desamor (Puterío)",chismes:"CHISMES que no puedo guardar",jefes:"JEFES / Trabajo",bronca:"QUEJAS / Broncas / Frustraciones",anecdotas:"ANÉCDOTAS / Pasaron cosas",injusticias:"INJUSTICIAS / Indignación",alegria:"ALEGRÍAS / Todo lo bueno que querés decir"};
 
   return(
     <div style={{
@@ -1332,7 +1332,7 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
                   {id:"bronca",label:"QUEJAS / Broncas / Frustraciones"},
                   {id:"anecdotas",label:"ANÉCDOTAS / Pasaron cosas"},
                   {id:"injusticias",label:"INJUSTICIAS / Indignación"},
-                  {id:"alegria",label:"ALEGRÍA / Buenas noticias"},
+                  {id:"alegria",label:"ALEGRÍAS / Todo lo bueno que querés decir"},
                 ].map(c=>(
                   <button key={c.id} onClick={()=>setCategory(c.id)} style={{
                     flex:"1 1 calc(50% - 4px)",padding:"10px 8px",borderRadius:12,cursor:"pointer",
@@ -1778,7 +1778,7 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
   const[followerCount,setFollowerCount]=useState(0);
   const[followingCount,setFollowingCount]=useState(0);
   const[loading,setLoading]=useState(true);
-  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
+  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegrías"};
 
   useEffect(()=>{
     const load=async()=>{
@@ -2248,7 +2248,7 @@ function App(){
   );
 
   // Tab content renderers
-  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
+  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegrías"};
 
   const groupSpits=(feedSpits)=>{
     const groups=[];
@@ -2719,7 +2719,7 @@ function App(){
             {mySpits.length===0?(
               <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>Todavía no escupiste nada.</div>
             ):(()=>{
-              const CATS_P={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegría"};
+              const CATS_P={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegrías"};
               const seen=new Set();
               const groups=[];
               mySpits.forEach(s=>{
