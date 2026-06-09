@@ -573,7 +573,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
     bronca:{from:"#2d0a0a",to:"#5c1a1a",accent:"#FF385C"},
     anecdotas:{from:"#1a2d0a",to:"#305c10",accent:"#7ec850"},
     injusticias:{from:"#1a0a2d",to:"#30105c",accent:"#9b59b6"},
-    alegria:{from:"#1a2d1a",to:"#2d5c10",accent:"#f0c030"},
+    alegria:{from:"#2d2500",to:"#5c4a00",accent:"#f0c030"},
   };
   const theme=(spit?.emotion&&emotionBg[spit.emotion])||
               (spit?.category&&catBg[spit.category])||
@@ -2895,7 +2895,7 @@ function App(){
                 <div style={{fontSize:16,fontWeight:700,color:"#222",marginBottom:8}}>{msg}</div>
                 <div style={{fontSize:13,color:"#aaa",marginBottom:24}}>Sé el primero en escupir acá.</div>
                 <button onClick={()=>{setShowListen(false);setListenCategory(null);setShowRecord(true);}} style={{width:"100%",padding:14,borderRadius:12,background:RAUSCH,border:"none",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:10}}>Grabar ahora</button>
-                <button onClick={()=>{setShowListen(false);setListenCategory(null);}} style={{width:"100%",padding:12,borderRadius:12,background:"none",border:"1.5px solid #ebebeb",color:"#888",fontSize:13,fontWeight:600,cursor:"pointer"}}>Volver</button>
+                <button onClick={()=>{setShowListen(false);setListenCategory(null);setShowListenPicker(true);}} style={{width:"100%",padding:12,borderRadius:12,background:"none",border:"1.5px solid #ebebeb",color:"#888",fontSize:13,fontWeight:600,cursor:"pointer"}}>Volver</button>
               </div>
             </div>
           );
