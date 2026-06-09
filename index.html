@@ -243,7 +243,7 @@ function AuthScreen({onLogin}){
               <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"#aaa"}}>@</span>
               <input type="text" placeholder="usuario" value={handle} onChange={e=>setHandle(e.target.value.replace(/^@/,""))} style={{...iStyle,paddingLeft:28}}/>
             </div>
-            <p style={{fontSize:11,color:"#bbb",marginTop:-8}}>Usá un nickname, nadie necesita saber quién sos.</p>
+            <p style={{fontSize:11,color:"#bbb",marginTop:-8}}>Creá tu usuario.</p>
           </>}
           <div style={{position:"relative"}}>
             <input type={showPass?"text":"password"} placeholder="Contraseña" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} style={{...iStyle,paddingRight:44}}/>
@@ -925,7 +925,7 @@ function SpitCard({spit,onClose,following,onFollowToggle,currentUser}){
             <div style={{width:40,height:40,borderRadius:"50%",background:"#f5f5f5",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{icon}</div>
             <div>
               <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                <span style={{fontSize:14,fontWeight:700,color:"#222"}}>{spit.handle||"@anónimo"}</span>
+                <span style={{fontSize:14,fontWeight:700,color:"#222"}}>{spit.handle||"@usuario"}</span>
                   {VERIFIED.has(spit.handle)&&<VerifiedBadge/>}
                 {spit.handle&&spit.handle!==currentUser?.handle&&onFollowToggle&&(
                   <button onClick={()=>onFollowToggle(spit.handle)} style={{padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",background:isFollowing?"#fff":RAUSCH,border:`1.5px solid ${isFollowing?"#e0e0e0":RAUSCH}`,color:isFollowing?"#888":"#fff",transition:"all 0.2s"}}>
@@ -1374,7 +1374,7 @@ const TEXTS={
     badge:"🌎 Emociones en tiempo real",
     heroLine1:"NO TE LO TRAGUES.",
     heroLine2:"ESCUPILO.",
-    heroSub:"La primera red social de voz anónima.",
+    heroSub:"La red social donde la gente dice lo que realmente piensa.",
     heroDesc:"Decí lo que pensás. Decí lo que sentís. Decí lo que nunca dirías con tu nombre.",
     cta1:"Comenzar 🎙",
     cta2:"Escuchar spits →",
@@ -1401,10 +1401,10 @@ const TEXTS={
     ],
     forYouClose:"Si tenés algo para decir, tenés algo para escupir.",
     ctaTitle:"El mundo está lleno de cosas que nadie dice.",
-    ctaSub:"AirSpit existe para cambiar eso.\nSin nombres. Sin máscaras. Sin miedo.\nSolo voces reales. Y emociones reales.",
+    ctaSub:"AirSpit existe para cambiar eso.\nSolo voces y emociones reales.",
     ctaBtn:"Entrar a AirSpit 🎙️",
     enter:"Entrar",
-    footer:"La primera red social de voz anónima.",
+    footer:"La red social donde la gente dice lo que realmente piensa.",
   },
   en:{
     badge:"🌎 Real-time emotions",
@@ -1569,7 +1569,7 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){
           onMouseOut={e=>e.currentTarget.style.transform="scale(1)"}>
           {T.ctaBtn}
         </button>
-        <p style={{marginTop:20,fontSize:13,color:"#ccc"}}>Es gratis. Es anónimo. 🎙️</p>
+        <p style={{marginTop:20,fontSize:13,color:"#ccc"}}>Es gratis. Es auténtico. 🎙️</p>
       </div>
 
       {/* Footer */}
@@ -1634,7 +1634,7 @@ function TermsPage({onClose}){
       <H>1. Edad mínima</H>
       <P>El uso de AirSpit está reservado exclusivamente a personas que tengan 18 años de edad o la edad mínima legal requerida en su país de residencia para acceder a servicios digitales, tomándose siempre la que resulte mayor. Al registrarse, el usuario declara bajo su responsabilidad cumplir con dicho requisito. AirSpit se reserva el derecho de suspender cualquier cuenta que no lo cumpla.</P>
       <H>2. Registro y cuenta</H>
-      <P>El usuario se registra mediante un nickname anónimo y una dirección de correo electrónico. El correo es utilizado únicamente para autenticación y no será visible para otros usuarios. El usuario es responsable de mantener la confidencialidad de sus credenciales.</P>
+      <P>El usuario se registra mediante un nickname y una dirección de correo electrónico. El correo es utilizado únicamente para autenticación y no será visible para otros usuarios. El usuario es responsable de mantener la confidencialidad de sus credenciales.</P>
       <H>3. Contenido publicado</H>
       <P>El usuario es el único responsable del contenido de audio que publica. AirSpit se reserva el derecho de eliminar cualquier spit y/o suspender cuentas que violen estos términos, la legislación vigente o las Normas de la Comunidad.</P>
       <H>4. Contenido prohibido</H>
@@ -1673,7 +1673,7 @@ function PrivacyPage({onClose}){
       <H>1. Datos que recopilamos</H>
       <ul style={{marginBottom:12}}>
         <Li><strong>Correo electrónico:</strong> solo para autenticación. No visible para otros usuarios.</Li>
-        <Li><strong>Nickname:</strong> nombre público anónimo elegido por el usuario.</Li>
+        <Li><strong>Nickname:</strong> nombre público elegido por el usuario.</Li>
         <Li><strong>Archivos de audio:</strong> los spits publicados, almacenados en servidores seguros.</Li>
         <Li><strong>Ciudad (opcional):</strong> si el usuario decide compartirla al publicar.</Li>
         <Li><strong>Datos técnicos:</strong> idioma del navegador y metadatos básicos de sesión.</Li>
@@ -1756,7 +1756,7 @@ function CompleteProfile({email,authId,onDone}){
   return(
     <div style={{width:"100%",maxWidth:380,background:"#fff",borderRadius:16,boxShadow:"0 4px 32px rgba(0,0,0,0.08)",padding:"32px 28px"}}>
       <div style={{fontSize:16,fontWeight:700,color:"#222",marginBottom:6}}>¿Cómo querés que te llamen?</div>
-      <div style={{fontSize:13,color:"#aaa",marginBottom:24}}>Usá un nickname — nadie necesita saber quién sos.</div>
+      <div style={{fontSize:13,color:"#aaa",marginBottom:24}}>Creá tu usuario.</div>
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
         <div style={{position:"relative"}}>
           <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:"#aaa"}}>@</span>
