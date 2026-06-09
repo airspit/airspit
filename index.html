@@ -575,8 +575,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
     injusticias:{from:"#1a0a2d",to:"#30105c",accent:"#9b59b6"},
     alegria:{from:"#2d2500",to:"#5c4a00",accent:"#f0c030"},
   };
-  const theme=(spit?.emotion&&emotionBg[spit.emotion])||
-              (spit?.category&&catBg[spit.category])||
+  const theme=(spit?.category&&catBg[spit.category])||
               {from:"#0a0a0a",to:"#1a1a2d",accent:"#FF385C"};
 
   // Auto-play
