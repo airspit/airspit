@@ -426,11 +426,12 @@ function ListenPicker({onSelect,onClose}){
     {id:"bronca",label:"Quejas"},
     {id:"anecdotas",label:"Anécdotas"},
     {id:"injusticias",label:"Injusticias"},
+    {id:"opinion",label:"Opinión"},
     {id:"alegria",label:"Alegrías"},
   ];
   const colors={
     amor:"#e84393",chismes:"#FC642D",jefes:"#4a90d9",
-    bronca:"#FF385C",anecdotas:"#7ec850",injusticias:"#9b59b6",alegria:"#f0c030",
+    bronca:"#FF385C",anecdotas:"#7ec850",injusticias:"#9b59b6",opinion:"#0891b2",alegria:"#f0c030",
   };
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
@@ -573,6 +574,7 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
     bronca:{from:"#2d0a0a",to:"#5c1a1a",accent:"#FF385C"},
     anecdotas:{from:"#1a2d0a",to:"#305c10",accent:"#7ec850"},
     injusticias:{from:"#1a0a2d",to:"#30105c",accent:"#9b59b6"},
+    opinion:{from:"#001a20",to:"#003040",accent:"#0891b2"},
     alegria:{from:"#2d2500",to:"#5c4a00",accent:"#f0c030"},
   };
   const theme=(spit?.category&&catBg[spit.category])||
@@ -650,8 +652,8 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   const isFollowing=following?.includes(spit.handle);
   const pct=duration>0?(progress/duration)*100:0;
   const fmt=s=>isFinite(s)&&s>=0?`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`:"0:00";
-  const CATS_SHORT={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegrías"};
-  const CATS_L={amor:"AMOR / Desamor (Puterío)",chismes:"CHISMES que no puedo guardar",jefes:"JEFES / Trabajo",bronca:"QUEJAS / Broncas / Frustraciones",anecdotas:"ANÉCDOTAS / Pasaron cosas",injusticias:"INJUSTICIAS / Indignación",alegria:"ALEGRÍAS / Todo lo bueno que querés decir"};
+  const CATS_SHORT={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",opinion:"Opinión",alegria:"Alegrías"};
+  const CATS_L={amor:"AMOR / Desamor (Puterío)",chismes:"CHISMES que no puedo guardar",jefes:"JEFES / Trabajo",bronca:"QUEJAS / Broncas / Frustraciones",anecdotas:"ANÉCDOTAS / Pasaron cosas",injusticias:"INJUSTICIAS / Indignación",opinion:"OPINIÓN / Lo que pienso",alegria:"ALEGRÍAS / Todo lo bueno que querés decir"};
 
   return(
     <div style={{
@@ -1341,6 +1343,7 @@ function RecordModal({onClose,currentUser,onSaved,mundialDefault=false,respitOf=
                   {id:"bronca",label:"QUEJAS / Broncas / Frustraciones"},
                   {id:"anecdotas",label:"ANÉCDOTAS / Pasaron cosas"},
                   {id:"injusticias",label:"INJUSTICIAS / Indignación"},
+                  {id:"opinion",label:"OPINIÓN / Lo que pienso"},
                   {id:"alegria",label:"ALEGRÍAS / Todo lo bueno que querés decir"},
                 ].map(c=>(
                   <button key={c.id} onClick={()=>setCategory(c.id)} style={{
@@ -1808,7 +1811,7 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
   const[followerCount,setFollowerCount]=useState(0);
   const[followingCount,setFollowingCount]=useState(0);
   const[loading,setLoading]=useState(true);
-  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegrías"};
+  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",opinion:"Opinión",alegria:"Alegrías"};
 
   useEffect(()=>{
     const load=async()=>{
@@ -2274,7 +2277,7 @@ function App(){
   );
 
   // Tab content renderers
-  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegrías"};
+  const CATS={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",opinion:"Opinión",alegria:"Alegrías"};
 
   const groupSpits=(feedSpits)=>{
     const groups=[];
@@ -2752,7 +2755,7 @@ function App(){
             {mySpits.length===0?(
               <div style={{background:"#fff",borderRadius:16,padding:32,textAlign:"center",color:"#bbb",fontSize:13}}>Todavía no escupiste nada.</div>
             ):(()=>{
-              const CATS_P={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",alegria:"Alegrías"};
+              const CATS_P={amor:"Amor",chismes:"Chismes",jefes:"Jefes",bronca:"Quejas",anecdotas:"Anécdotas",injusticias:"Injusticias",opinion:"Opinión",alegria:"Alegrías"};
               const seen=new Set();
               const groups=[];
               mySpits.forEach(s=>{
@@ -2892,7 +2895,7 @@ function App(){
       {showListen&&spits.length>0&&(()=>{
         const filtered=listenCategory?spits.filter(s=>s.category===listenCategory&&!s.respit_of):spits.filter(s=>!s.respit_of);
         if(filtered.length===0){
-          const EMPTY_MSG={amor:"¡Contá lo tuyo! Todavía no hay spits de Amor.",chismes:"¡Spiteá ese chisme! Todavía no hay spits de Chismes.",jefes:"¿Tenés algo para decir de tu jefe? Todavía no hay spits de Jefes.",bronca:"¡Desahogáte! Todavía no hay spits de Quejas.",anecdotas:"¡Contá lo que pasó! Todavía no hay spits de Anécdotas.",injusticias:"¡Hacete escuchar! Todavía no hay spits de Injusticias.",alegria:"¡Compartí algo bueno! Todavía no hay spits de Alegrías."};
+          const EMPTY_MSG={amor:"¡Contá lo tuyo! Todavía no hay spits de Amor.",chismes:"¡Spiteá ese chisme! Todavía no hay spits de Chismes.",jefes:"¿Tenés algo para decir de tu jefe? Todavía no hay spits de Jefes.",bronca:"¡Desahogáte! Todavía no hay spits de Quejas.",anecdotas:"¡Contá lo que pasó! Todavía no hay spits de Anécdotas.",injusticias:"¡Hacete escuchar! Todavía no hay spits de Injusticias.",opinion:"¡Compartí tu opinión! Todavía no hay spits de Opinión.",alegria:"¡Compartí algo bueno! Todavía no hay spits de Alegrías."};
           const msg=listenCategory?EMPTY_MSG[listenCategory]||"Todavía no hay spits en esta categoría.":"Todavía no hay spits.";
           return(
             <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:24}} onClick={()=>{setShowListen(false);setListenCategory(null);}}>
