@@ -1816,7 +1816,7 @@ function CompleteProfile({email,authId,onDone}){
   );
 }
 
-function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
+function PublicProfile({handle,currentUser,following,onFollowToggle,onClose,likedIds,onToggleLike}){
   const[profile,setProfile]=useState(null);
   const[spits,setSpits]=useState([]);
   const[followerCount,setFollowerCount]=useState(0);
@@ -1912,6 +1912,11 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose}){
                     <span style={{fontSize:11,color:"#bbb",marginLeft:"auto"}}>{s.duration}s</span>
                   </div>
                   <Player duration={s.duration} audioUrl={s.audio_url}/>
+                  {currentUser&&currentUser.handle!==handle&&<div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+                    <button onClick={()=>onToggleLike&&onToggleLike(s.id)} style={{background:"none",border:"none",cursor:"pointer",padding:4,display:"flex",alignItems:"center",gap:5}}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill={likedIds?.has(s.id)?RAUSCH:"none"} stroke={likedIds?.has(s.id)?RAUSCH:"#ccc"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    </button>
+                  </div>}
                 </div>
               ))}
             </div>
@@ -2214,7 +2219,7 @@ function App(){
     </div>
   );
 
-  if(viewProfile)return <PublicProfile handle={viewProfile} currentUser={user} following={following} onFollowToggle={toggleFollow} onClose={()=>setViewProfile(null)}/>;
+  if(viewProfile)return <PublicProfile handle={viewProfile} currentUser={user} following={following} onFollowToggle={toggleFollow} onClose={()=>setViewProfile(null)} likedIds={likedIds} onToggleLike={async(id)=>{if(likedIds.has(id)){await sb.from("reactions").delete().eq("spit_id",id).eq("handle",user.handle).eq("emoji","❤️");setLikedIds(p=>{const s=new Set(p);s.delete(id);return s;});}else{await sb.from("reactions").insert([{spit_id:id,handle:user.handle,emoji:"❤️"}]);setLikedIds(p=>new Set([...p,id]));}}}/>;
   if(showLegal)return <LegalUnified onClose={()=>setShowLegal(false)}/>;
 
   if(!user)return <Landing onEnter={()=>setShowAuth(true)} showAuth={showAuth} onLogin={(u)=>{setUser(u);setShowLanding(false);}} onLegal={()=>setShowLegal(true)}/>;
@@ -2402,7 +2407,7 @@ function App(){
     );
   };
 
-  const FeedCard=({s,i,savedIds,toggleSave,setListenStart,setShowListen,setViewProfile,allSpits,onRespit,currentUser,playingId,setPlayingId})=>{
+  const FeedCard=({s,i,savedIds,toggleSave,setListenStart,setShowListen,setViewProfile,allSpits,onRespit,currentUser,playingId,setPlayingId,likedIds,onToggleLike})=>{
     const[playing,setPlaying]=useState(false);
     const[progress,setProgress]=useState(0);
     const[dur,setDur]=useState(s.duration||0);
@@ -2458,6 +2463,9 @@ function App(){
                 <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/>
               </svg>
             </button>
+            {currentUser&&s.handle!==currentUser?.handle&&<button onClick={e=>{e.stopPropagation();onToggleLike&&onToggleLike(s.id);}} style={{background:"none",border:"none",cursor:"pointer",padding:6,display:"flex",alignItems:"center",flexShrink:0}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill={likedIds?.has(s.id)?RAUSCH:"none"} stroke={likedIds?.has(s.id)?RAUSCH:"#ccc"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>}
             {playing&&<button onClick={e=>{e.stopPropagation();setSpeed(s=>{const i=SPEEDS.indexOf(s);const next=SPEEDS[(i+1)%SPEEDS.length];if(audioRef.current)audioRef.current.playbackRate=next;return next;});}} style={{background:speed!==1?"#fff0f3":"#f0f0f0",border:`1.5px solid ${speed!==1?RAUSCH:"#e8e8e8"}`,borderRadius:6,padding:"3px 7px",cursor:"pointer",fontSize:11,fontWeight:700,color:speed!==1?RAUSCH:"#888",flexShrink:0}}>
               {speed===1?"1x":speed===1.5?"1.5x":"2x"}
             </button>}
@@ -2509,7 +2517,7 @@ function App(){
         {groups.map(g=>{
           if(g.type==="thread")return <ThreadCard key={g.id} thread={g.spits} firstIndex={g.firstIndex}/>;
           const s=g.spit;const i=g.index;
-          return <FeedCard key={s.id} s={s} i={i} savedIds={savedIds} toggleSave={toggleSave} setListenStart={setListenStart} setShowListen={setShowListen} setViewProfile={setViewProfile} allSpits={feedSpits} onRespit={(id)=>{setRespitOf(id);setShowRecord(true);}} currentUser={user} playingId={playingId} setPlayingId={setPlayingId}/>;
+          return <FeedCard key={s.id} s={s} i={i} savedIds={savedIds} toggleSave={toggleSave} setListenStart={setListenStart} setShowListen={setShowListen} setViewProfile={setViewProfile} allSpits={feedSpits} onRespit={(id)=>{setRespitOf(id);setShowRecord(true);}} currentUser={user} playingId={playingId} setPlayingId={setPlayingId} likedIds={likedIds} onToggleLike={async(id)=>{if(likedIds.has(id)){await sb.from("reactions").delete().eq("spit_id",id).eq("handle",user.handle).eq("emoji","❤️");setLikedIds(p=>{const s=new Set(p);s.delete(id);return s;});}else{await sb.from("reactions").insert([{spit_id:id,handle:user.handle,emoji:"❤️"}]);setLikedIds(p=>new Set([...p,id]));}}} />;
         })}
       </div>
     );
