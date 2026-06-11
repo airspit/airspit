@@ -2062,14 +2062,18 @@ function App(){
   // Restore session
   useEffect(()=>{
     dbGetSession().then(profile=>{
-      if(profile)setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role],country:profile.country||"",bio:profile.bio||"",handle_changed_at:profile.handle_changed_at||null});
+      if(profile){
+        setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role],country:profile.country||"",bio:profile.bio||"",handle_changed_at:profile.handle_changed_at||null,terms_accepted_at:profile.terms_accepted_at||null});
+        if(!profile.terms_accepted_at)setShowTermsUpdate(true);
+      }
       setChecking(false);
     });
     const{data:{subscription}}=sb.auth.onAuthStateChange(async(event,session)=>{
       if(event==="SIGNED_IN"&&session){
-        const{data:profile}=await sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at").eq("auth_id",session.user.id).single();
+        const{data:profile}=await sb.from("users").select("handle,role,roles,auth_id,email,country,bio,handle_changed_at,terms_accepted_at").eq("auth_id",session.user.id).single();
         if(profile){
-          setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role]});
+          setUser({email:profile.email,handle:profile.handle,role:profile.role,roles:profile.roles||[profile.role],terms_accepted_at:profile.terms_accepted_at||null});
+          if(!profile.terms_accepted_at)setShowTermsUpdate(true);
         }else{
           setUser({email:session.user.email,handle:null,role:null,needsProfile:true,auth_id:session.user.id});
         }
