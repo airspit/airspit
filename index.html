@@ -602,7 +602,6 @@ function ListenMode({spits,startIndex,onClose,currentUser,following,onFollowTogg
   },[playing]);
 
   useEffect(()=>{if(audioRef.current)audioRef.current.playbackRate=speed;},[speed]);
-  useEffect(()=>{if(spitId&&playingId!==spitId&&playing){if(audioRef.current){audioRef.current.pause();}setPlaying(false);setCur(0);}},[playingId]);
 
   const goTo=(newIdx,dir)=>{
     if(animating||newIdx<0||newIdx>=spits.length)return;
