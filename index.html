@@ -1773,6 +1773,8 @@ function CompleteProfile({email,authId,onDone}){
 
   const doSave=async()=>{
     const h="@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,"");
+    const RESERVED=["@spit", "@spitit", "@airspit", "@admin", "@soporte", "@support", "@oficial", "@official", "@spit.app", "@spitit.app"];
+    if(RESERVED.includes(h)){setError("Ese nickname no está disponible.");return;}
     setLoading(true);
     let country="";
     try{const geo=await fetch("https://ipapi.co/json/");const geoData=await geo.json();if(geoData&&geoData.country_code)country=geoData.country_code;}catch{}
