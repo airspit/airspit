@@ -18,7 +18,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f7f7}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F3F0FF}
 @keyframes slideInFromBottom{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes slideInFromTop{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 @keyframes slideOutToTop{from{transform:translateY(0)}to{transform:translateY(-100%)}}
@@ -151,7 +151,7 @@ function AuthScreen({onLogin}){
   const[forgotSent,setForgotSent]=useState(false);
   const[forgotMode,setForgotMode]=useState(false);
   const[showLegalForReg,setShowLegalForReg]=useState(false);
-  const iStyle={width:"100%",padding:"12px 14px",background:"#FAFAFA",border:"1.5px solid #ebebeb",borderRadius:10,fontSize:14,color:"#222",outline:"none"};
+  const iStyle={width:"100%",padding:"12px 14px",background:"#F3F0FF",border:"1.5px solid #ebebeb",borderRadius:10,fontSize:14,color:"#222",outline:"none"};
 
   const sendReset=async()=>{
     if(!email){setError("Ingresá tu email.");return;}
@@ -452,7 +452,7 @@ function ListenPicker({onSelect,onClose}){
         </div>
         <button onClick={()=>onSelect(null)} style={{
           width:"100%",padding:"14px 16px",borderRadius:14,border:"1.5px solid #ebebeb",
-          background:"#fafafa",cursor:"pointer",textAlign:"center",
+          background:"#F3F0FF",cursor:"pointer",textAlign:"center",
         }}>
           <div style={{fontSize:14,fontWeight:700,color:"#555"}}>Todos los spits</div>
         </button>
@@ -842,7 +842,7 @@ function Player({duration,audioUrl,playingId,setPlayingId,spitId}){
   const btnS={background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,color:"#999",padding:"4px 6px"};
 
   return(
-    <div style={{background:"#fafafa",borderRadius:12,padding:"12px 14px"}}>
+    <div style={{background:"#F3F0FF",borderRadius:12,padding:"12px 14px"}}>
       {audioUrl&&!loaded&&<div style={{fontSize:11,color:"#bbb",textAlign:"center",marginBottom:8}}>Cargando audio…</div>}
       {!audioUrl&&<div style={{fontSize:11,color:"#bbb",textAlign:"center",marginBottom:8}}>Audio no disponible</div>}
       <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
@@ -1545,7 +1545,7 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){
           <p style={{fontSize:16,color:"#999",lineHeight:1.8,maxWidth:580,margin:"0 auto 72px"}}>{T.whyIntro}</p>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:24}}>
             {T.features.map((f,i)=>(
-              <div key={i} style={{background:"#fafafa",borderRadius:20,padding:"32px 24px",border:"1px solid #f0f0f0",textAlign:"center",transition:"transform 0.2s,box-shadow 0.2s"}}
+              <div key={i} style={{background:"#F3F0FF",borderRadius:20,padding:"32px 24px",border:"1px solid #f0f0f0",textAlign:"center",transition:"transform 0.2s,box-shadow 0.2s"}}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="0 12px 32px rgba(0,0,0,0.08)";}}
                 onMouseOut={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";}}>
                 <div style={{fontSize:40,marginBottom:16}}>{f.emoji}</div>
@@ -1558,7 +1558,7 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){
       </div>
 
       {/* PÁGINA 3 — Hay un spit para todo */}
-      <div style={{background:"#fafafa",padding:"100px 24px"}}>
+      <div style={{background:"#F3F0FF",padding:"100px 24px"}}>
         <div style={{maxWidth:680,margin:"0 auto",textAlign:"center"}}>
           <h2 style={{fontSize:"clamp(26px,4vw,44px)",fontWeight:900,letterSpacing:-1.5,marginBottom:48,color:"#111"}}>{T.forYouTitle}</h2>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:14,marginBottom:48}}>
@@ -1621,7 +1621,7 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){
 // ── Legal Pages ───────────────────────────────────────────────────────────────
 function LegalPage({title,onClose,children}){
   return(
-    <div style={{minHeight:"100vh",background:"#FAFAFA",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
+    <div style={{minHeight:"100vh",background:"#F3F0FF",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
       <header style={{background:"#fff",padding:"0 24px",height:64,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
         <button onClick={onClose} style={{background:"none",border:"none",fontSize:14,color:RAUSCH,cursor:"pointer",fontWeight:600,display:"flex",alignItems:"center",gap:6}}>{"← Volver"}</button>
         <span style={{fontSize:16,fontWeight:700,color:"#222"}}>{title}</span>
@@ -1646,7 +1646,7 @@ function LegalUnified({onClose,onAccept,requireAccept=false}){
     if(!scrolled&&el.scrollTop+el.clientHeight>=el.scrollHeight-40)setScrolled(true);
   };
   return(
-    <div style={{position:"fixed",inset:0,background:"#FAFAFA",zIndex:500,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",display:"flex",flexDirection:"column"}}>
+    <div style={{position:"fixed",inset:0,background:"#F3F0FF",zIndex:500,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",display:"flex",flexDirection:"column"}}>
       <header style={{background:"#fff",padding:"0 24px",height:64,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",flexShrink:0}}>
         <button onClick={onClose} style={{background:"none",border:"none",fontSize:14,color:RAUSCH,cursor:"pointer",fontWeight:600,display:"flex",alignItems:"center",gap:6}}>{"← Volver"}</button>
         <span style={{fontSize:16,fontWeight:700,color:"#222"}}>Términos y Condiciones</span>
@@ -1769,7 +1769,7 @@ function CompleteProfile({email,authId,onDone}){
   const[handle,setHandle]=useState("");
   const[error,setError]=useState("");
   const[loading,setLoading]=useState(false);
-  const iStyle={width:"100%",padding:"12px 14px",background:"#FAFAFA",border:"1.5px solid #ebebeb",borderRadius:10,fontSize:14,color:"#222",outline:"none"};
+  const iStyle={width:"100%",padding:"12px 14px",background:"#F3F0FF",border:"1.5px solid #ebebeb",borderRadius:10,fontSize:14,color:"#222",outline:"none"};
 
   const doSave=async()=>{
     const h="@"+handle.replace(/^@/,"").toLowerCase().replace(/[^a-z0-9_]/g,"");
@@ -1846,7 +1846,7 @@ function PublicProfile({handle,currentUser,following,onFollowToggle,onClose,like
   const isFollowing=following?.includes(handle);
 
   return(
-    <div style={{position:"fixed",inset:0,background:"#FAFAFA",zIndex:200,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",overflowY:"auto"}}>
+    <div style={{position:"fixed",inset:0,background:"#F3F0FF",zIndex:200,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",overflowY:"auto"}}>
       <header style={{background:"#fff",padding:"0 16px",height:56,display:"flex",alignItems:"center",gap:12,borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
         <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:RAUSCH,fontWeight:600,fontSize:14,display:"flex",alignItems:"center",gap:4}}>← Volver</button>
       </header>
@@ -2340,7 +2340,7 @@ function App(){
         </div>
         {/* Thread parts */}
         {expanded&&thread.map((s,idx)=>(
-          <div key={s.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:idx<thread.length-1?"1px solid #f9f9f9":"none",cursor:"pointer",background:"#fafafa"}}
+          <div key={s.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:idx<thread.length-1?"1px solid #f9f9f9":"none",cursor:"pointer",background:"#F3F0FF"}}
             onClick={()=>{setListenStart(firstIndex+idx);setShowListen(true);}}>
             <div style={{width:24,height:24,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:RAUSCH,flexShrink:0}}>{idx+1}</div>
             <div style={{flex:1}}>
@@ -2378,7 +2378,7 @@ function App(){
     const pct=dur>0?(progress/dur)*100:0;
     const fmt=t=>{const m=Math.floor(t/60);const sc=Math.floor(t%60);return`${m}:${sc<10?"0":""}${sc}`;};
     return(
-      <div style={{background:"#fafafa",borderRadius:12,padding:"10px 14px",borderLeft:`3px solid ${RAUSCH}22`}}>
+      <div style={{background:"#F3F0FF",borderRadius:12,padding:"10px 14px",borderLeft:`3px solid ${RAUSCH}22`}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <Avatar icon="waves" color={handleColor(r.handle)} size={30}/>
           <div style={{flex:1,minWidth:0}}>
@@ -2527,7 +2527,7 @@ function App(){
   const followingSpits=spits.filter(s=>following.includes(s.handle));
 
   return(
-    <div style={{minHeight:"100vh",background:"#FAFAFA",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",paddingBottom:80}}>
+    <div style={{minHeight:"100vh",background:"#F3F0FF",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",paddingBottom:80}}>
 
       {/* Header */}
       <header style={{background:"#fff",padding:"0 16px",height:56,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
@@ -2809,7 +2809,7 @@ function App(){
                               onMouseOut={e=>e.currentTarget.style.color="#ddd"}>🗑</button>
                           </div>
                           {g.spits.map((s,idx)=>(
-                            <div key={s.id} style={{padding:"12px 16px",borderBottom:idx<g.spits.length-1?"1px solid #f9f9f9":"none",background:"#fafafa"}}>
+                            <div key={s.id} style={{padding:"12px 16px",borderBottom:idx<g.spits.length-1?"1px solid #f9f9f9":"none",background:"#F3F0FF"}}>
                               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                                 <span style={{width:20,height:20,borderRadius:"50%",background:"#fff0f3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:RAUSCH,flexShrink:0}}>{idx+1}</span>
                                 <span style={{fontSize:11,color:"#aaa"}}>{s.duration}s{s.audio_url?" · 🔊":""}</span>
@@ -2958,19 +2958,19 @@ function App(){
               <>
                 <div style={{fontSize:15,fontWeight:700,color:"#222",marginBottom:20}}>Configuración</div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                  <button onClick={()=>setSettingsView("avatar")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <button onClick={()=>setSettingsView("avatar")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#F3F0FF",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     Editar avatar
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
-                  <button onClick={()=>setSettingsView("handle")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <button onClick={()=>setSettingsView("handle")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#F3F0FF",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     Editar nickname
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
-                  <button onClick={()=>setSettingsView("security")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <button onClick={()=>setSettingsView("security")} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#F3F0FF",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     Seguridad
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
-                  <button onClick={async()=>{await sb.auth.signOut();setUser(null);setShowSettings(false);}} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#888",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left"}}>
+                  <button onClick={async()=>{await sb.auth.signOut();setUser(null);setShowSettings(false);}} style={{padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#F3F0FF",color:"#888",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left"}}>
                     Cerrar sesión
                   </button>
                 </div>
@@ -3031,7 +3031,7 @@ function App(){
                   <div style={{fontSize:13,color:"#555",fontWeight:600}}>{user.email}</div>
                 </div>
                 {!user.email?.includes("google")&&(
-                  <button onClick={()=>setSettingsView("password")} style={{width:"100%",padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#fafafa",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <button onClick={()=>setSettingsView("password")} style={{width:"100%",padding:"14px 16px",borderRadius:12,border:"1.5px solid #ebebeb",background:"#F3F0FF",color:"#333",fontSize:13,fontWeight:600,cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     Cambiar contraseña
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                   </button>
