@@ -2,6 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@1,9..40,900&display=swap" rel="stylesheet"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Spit</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"/>
@@ -194,7 +196,7 @@ function AuthScreen({onLogin}){
     <div style={{minHeight:"100vh",background:"#fff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{marginBottom:40,textAlign:"center"}}>
         <div style={{fontSize:34,fontWeight:800,letterSpacing:-1.5}}>
-          <span style={{color:RAUSCH}}>air</span><span style={{color:"#222"}}>spit</span>
+          <span style={{fontFamily:"'DM Sans', sans-serif",fontStyle:"italic",fontWeight:900,color:RAUSCH,letterSpacing:"-2px"}}>spit</span>
         </div>
       </div>
       <div style={{width:"100%",maxWidth:380,background:"#fff",borderRadius:16,boxShadow:"0 4px 32px rgba(0,0,0,0.08)",padding:"32px 28px",animation:"fadeUp 0.4s ease"}}>
@@ -233,7 +235,7 @@ function AuthScreen({onLogin}){
     <div style={{minHeight:"100vh",background:"#fff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{marginBottom:40,textAlign:"center"}}>
         <div style={{fontSize:34,fontWeight:800,letterSpacing:-1.5}}>
-          <span style={{color:RAUSCH}}>air</span><span style={{color:"#222"}}>spit</span>
+          <span style={{fontFamily:"'DM Sans', sans-serif",fontStyle:"italic",fontWeight:900,color:RAUSCH,letterSpacing:"-2px"}}>spit</span>
         </div>
         <div style={{fontSize:12,color:"#aaa",marginTop:4}}>No te lo guardes más. Escupí lo que sentís.</div>
       </div>
@@ -1487,7 +1489,7 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){
       {/* Nav */}
       <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,background:scrolled?"rgba(255,255,255,0.97)":"transparent",backdropFilter:scrolled?"blur(12px)":"none",borderBottom:scrolled?"1px solid #f0f0f0":"none",padding:"0 24px",height:60,display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all 0.3s"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:-0.5}}>
-          <span style={{color:RAUSCH}}>air</span>spit
+          <span style={{fontFamily:"'DM Sans', sans-serif",fontStyle:"italic",fontWeight:900,color:"#fff",letterSpacing:"-2px"}}>spit</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <Flag code="es" label="Español"/>
@@ -1587,7 +1589,7 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){
       {/* Footer */}
       <div style={{borderTop:"1px solid #f0f0f0",padding:"40px 24px",textAlign:"center",background:"#fff"}}>
         <div style={{fontSize:22,fontWeight:900,letterSpacing:-0.5,marginBottom:8}}>
-          <span style={{color:RAUSCH}}>air</span>spit
+          <span style={{fontFamily:"'DM Sans', sans-serif",fontStyle:"italic",fontWeight:900,color:"#fff",letterSpacing:"-2px"}}>spit</span>
         </div>
         <p style={{fontSize:13,color:"#bbb",marginBottom:20}}>{T.footer}</p>
         <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:20,marginBottom:20,flexWrap:"wrap"}}>
@@ -2214,7 +2216,7 @@ function App(){
   if(checking)return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{fontSize:28,fontWeight:800}}><span style={{color:RAUSCH}}>air</span>spit</div>
+        <div style={{fontSize:28,fontWeight:800}}><span style={{fontFamily:"'DM Sans', sans-serif",fontStyle:"italic",fontWeight:900,color:"#fff",letterSpacing:"-2px"}}>spit</span></div>
         <div style={{width:32,height:32,border:`3px solid ${RAUSCH}`,borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"16px auto 0"}}/>
       </div>
     </div>
@@ -2231,7 +2233,7 @@ function App(){
   if(user.needsProfile)return(
     <div style={{minHeight:"100vh",background:"#fff",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{marginBottom:32,textAlign:"center"}}>
-        <div style={{fontSize:28,fontWeight:800}}><span style={{color:RAUSCH}}>air</span>spit</div>
+        <div style={{fontSize:28,fontWeight:800}}><span style={{fontFamily:"'DM Sans', sans-serif",fontStyle:"italic",fontWeight:900,color:"#fff",letterSpacing:"-2px"}}>spit</span></div>
         <div style={{fontSize:14,color:"#aaa",marginTop:8}}>Un último paso para empezar</div>
       </div>
       <CompleteProfile email={user.email} authId={user.auth_id} onDone={profile=>setUser({...profile,roles:[profile.role]})}/>
@@ -2532,7 +2534,7 @@ function App(){
       {/* Header */}
       <header style={{background:"#fff",padding:"0 16px",height:56,display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #ebebeb",position:"sticky",top:0,zIndex:50}}>
         <div style={{fontSize:18,fontWeight:800,letterSpacing:-0.5,cursor:"pointer"}} onClick={()=>setShowLanding(true)}>
-          <span style={{color:RAUSCH}}>air</span>spit
+          <span style={{fontFamily:"'DM Sans', sans-serif",fontStyle:"italic",fontWeight:900,color:"#fff",letterSpacing:"-2px"}}>spit</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:4}}>
           {activeTab==="global"&&(
