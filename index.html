@@ -2639,13 +2639,13 @@ function App(){
                   <div style={{fontSize:11,color:"#bbb",marginBottom:6}}>Ánimo global</div>
                   <div style={{display:"flex",borderRadius:8,overflow:"hidden",height:8,marginBottom:8}}>
                     {mood.map(({e,pct})=>(
-                      <div key={e} style={{width:`${pct}%`,background:e==="😤"?RAUSCH:e==="😐"?"#aaa":BABU,transition:"width 0.5s ease"}}/>
+                      <div key={e} style={{width:`${pct}%`,background:e==="😤"?"#E53935":e==="😐"?"#9E9E9E":"#7BC67E",transition:"width 0.5s ease"}}/>
                     ))}
                   </div>
                   <div style={{display:"flex",gap:12}}>
                     {mood.map(({e,pct})=>(
-                      <div key={e} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:"#888"}}>
-                        <span>{e}</span><span style={{fontWeight:600}}>{pct}%</span>
+                      <div key={e} style={{display:"flex",alignItems:"center",gap:4,fontSize:12,color:"#bbb"}}>
+                        <span>{e}</span><span style={{fontWeight:500,color:"#bbb"}}>{pct}%</span>
                       </div>
                     ))}
                   </div>
