@@ -1482,7 +1482,7 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){
   );
 
   return(
-    <div style={{height:"100vh",background:"#fff",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:"#222",overflowX:"hidden",overflowY:"scroll",scrollSnapType:"y mandatory"}}>
+    <div style={{height:"100vh",background:"#fff",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",color:"#222",overflowX:"hidden",overflowY:"scroll",scrollSnapType:"y proximity"}}>
 
       {/* Nav */}
       <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,background:"rgba(255,255,255,0.97)",backdropFilter:"blur(12px)",borderBottom:"1px solid #f0f0f0",padding:"0 24px",height:60,display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all 0.3s"}}>
@@ -1558,17 +1558,17 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){
       </div>
 
       {/* PÁGINA 3 — Hay un spit para todo */}
-      <div style={{height:"100vh",scrollSnapAlign:"start",display:"flex",alignItems:"center",background:"#F3F0FF",padding:"70px 24px 40px"}}>
-        <div style={{maxWidth:680,margin:"0 auto",textAlign:"center",width:"100%"}}>
-          <h2 style={{fontSize:"clamp(22px,3.5vw,36px)",fontWeight:900,letterSpacing:-1,marginBottom:16,color:"#111"}}>{T.forYouTitle}</h2>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:8,marginBottom:16}}>
+      <div style={{height:"100vh",scrollSnapAlign:"start",display:"flex",alignItems:"center",justifyContent:"center",background:"#F3F0FF",padding:"80px 24px"}}>
+        <div style={{maxWidth:520,width:"100%",textAlign:"center"}}>
+          <h2 style={{fontSize:"clamp(26px,4vw,40px)",fontWeight:900,letterSpacing:-1.5,marginBottom:20,color:"#111"}}>{T.forYouTitle}</h2>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
             {T.forYou.map((t,i)=>(
-              <div key={i} style={{background:"#fff",borderRadius:12,padding:"10px 16px",fontSize:13,color:"#333",textAlign:"left",border:"1px solid #ebebeb",fontWeight:500}}>
+              <div key={i} style={{background:"#fff",borderRadius:12,padding:"12px 18px",fontSize:14,color:"#333",textAlign:"left",border:"1px solid #ebebeb",fontWeight:500}}>
                 {t}
               </div>
             ))}
           </div>
-          <p style={{fontSize:15,fontWeight:700,color:RAUSCH}}>{T.forYouClose}</p>
+          <p style={{fontSize:16,fontWeight:700,color:RAUSCH}}>{T.forYouClose}</p>
         </div>
       </div>
 
