@@ -1559,17 +1559,17 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){
       </div>
 
       {/* PÁGINA 3 — Hay un spit para todo */}
-      <div style={{height:"100vh",scrollSnapAlign:"start",overflowY:"auto",background:"#F3F0FF",padding:"100px 24px"}}>
-        <div style={{maxWidth:680,margin:"0 auto",textAlign:"center"}}>
-          <h2 style={{fontSize:"clamp(26px,4vw,44px)",fontWeight:900,letterSpacing:-1.5,marginBottom:48,color:"#111"}}>{T.forYouTitle}</h2>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:14,marginBottom:48}}>
+      <div style={{height:"100vh",scrollSnapAlign:"start",display:"flex",alignItems:"center",background:"#F3F0FF",padding:"70px 24px 40px"}}>
+        <div style={{maxWidth:680,margin:"0 auto",textAlign:"center",width:"100%"}}>
+          <h2 style={{fontSize:"clamp(22px,3.5vw,36px)",fontWeight:900,letterSpacing:-1,marginBottom:16,color:"#111"}}>{T.forYouTitle}</h2>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:8,marginBottom:16}}>
             {T.forYou.map((t,i)=>(
-              <div key={i} style={{background:"#fff",borderRadius:14,padding:"18px 22px",fontSize:16,color:"#333",textAlign:"left",border:"1px solid #ebebeb",boxShadow:"0 2px 8px rgba(0,0,0,0.04)",fontWeight:500}}>
+              <div key={i} style={{background:"#fff",borderRadius:12,padding:"10px 16px",fontSize:13,color:"#333",textAlign:"left",border:"1px solid #ebebeb",fontWeight:500}}>
                 {t}
               </div>
             ))}
           </div>
-          <p style={{fontSize:18,fontWeight:700,color:RAUSCH}}>{T.forYouClose}</p>
+          <p style={{fontSize:15,fontWeight:700,color:RAUSCH}}>{T.forYouClose}</p>
         </div>
       </div>
 
