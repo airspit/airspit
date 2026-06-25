@@ -1488,7 +1488,7 @@ function Landing({onEnter,showAuth,onLogin,loggedIn,onBack,onLegal=()=>{}}){
       {/* Nav */}
       <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,background:scrolled?"rgba(255,255,255,0.97)":"transparent",backdropFilter:scrolled?"blur(12px)":"none",borderBottom:scrolled?"1px solid #f0f0f0":"none",padding:"0 24px",height:60,display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all 0.3s"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:-0.5}}>
-          <span style={{fontFamily:"'DM Sans', sans-serif",fontStyle:"italic",fontWeight:900,color:"#fff",letterSpacing:"-2px"}}>spit</span>
+          <span style={{fontFamily:"'DM Sans', sans-serif",fontStyle:"italic",fontWeight:900,color:scrolled?RAUSCH:"#fff",letterSpacing:"-2px"}}>spit</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <Flag code="es" label="Español"/>
